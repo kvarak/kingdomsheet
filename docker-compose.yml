@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kingdomsheet}
+      POSTGRES_USER: ${POSTGRES_USER:-kingdomsheet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      target: runtime
+    image: ${WEB_IMAGE:-kingdomsheet-web:local}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    ports:
+      - "127.0.0.1:8000:8000"
+    # Static files are served by WhiteNoise before host validation, so this works with any ALLOWED_HOSTS.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/static/kingdoms/site.css')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Runs lint and tests. Start only with `make check`, which enables this profile.
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: test
+    image: kingdomsheet-test:local
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:

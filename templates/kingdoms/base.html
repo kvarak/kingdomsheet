@@ -1,0 +1,17 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Kingdom Sheet{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
+</head>
+<body>
+  <header>
+    <a href="{% url 'kingdoms:home' %}">Kingdom Sheet</a>
+    <nav><a href="{% url 'kingdoms:names' %}">Name</a></nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

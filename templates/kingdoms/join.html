@@ -1,0 +1,10 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}Join a kingdom{% endblock %}
+{% block content %}
+<h1>Join a kingdom</h1>
+<form method="post" action="{% url 'kingdoms:join' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Join</button>
+</form>
+{% endblock %}

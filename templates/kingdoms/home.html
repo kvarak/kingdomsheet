@@ -1,0 +1,29 @@
+{% extends "kingdoms/base.html" %}
+{% load static %}
+{% block title %}Kingdoms{% endblock %}
+{% block content %}
+<h1>Your kingdoms</h1>
+{% if kingdoms %}
+<ul>
+  {% for kingdom in kingdoms %}
+  <li><a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>You have not joined any kingdoms yet.</p>
+{% endif %}
+
+<section>
+  <h2>Create a kingdom</h2>
+  <form method="post" action="{% url 'kingdoms:create' %}">
+    {% csrf_token %}
+    {{ create_form.as_p }}
+    <button type="submit">Create kingdom</button>
+  </form>
+</section>
+
+<section>
+  <h2>Join a kingdom</h2>
+  <p><a href="{% url 'kingdoms:join' %}">Enter a sharing ID</a></p>
+</section>
+{% endblock %}

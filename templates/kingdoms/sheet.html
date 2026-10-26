@@ -1,0 +1,51 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ kingdom.name }}{% endblock %}
+{% block content %}
+<h1>{{ kingdom.name }}</h1>
+<p>Sharing ID: <code>{{ kingdom.access_code }}</code></p>
+<p>Share this link with your group: <code>{{ share_url }}</code></p>
+<p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a> | <a href="{% url 'kingdoms:home' %}">All kingdoms</a></p>
+
+{% if writer %}
+  <p>Editing as <strong>{{ writer.display_name }}</strong>
+    ({% if writer.verified %}protected, password verified{% else %}open, not protected{% endif %}).</p>
+{% else %}
+  <p>Choose a name before editing: <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">select a name</a></p>
+{% endif %}
+
+<section>
+  <h2>Details</h2>
+  <form method="post" action="{% url 'kingdoms:sheet' kingdom.pk %}">
+    {% csrf_token %}
+    {{ details_form.as_p }}
+    <button type="submit">Save details</button>
+  </form>
+</section>
+
+<section>
+  <h2>Statistics</h2>
+  {% for statistic, form in rows %}
+  <div class="stat-row">
+    <form method="post" action="{% url 'kingdoms:statistic_edit' kingdom.pk statistic.pk %}">
+      {% csrf_token %}
+      {{ form.label }} {{ form.value }} {{ form.display_order }}
+      <button type="submit">Save</button>
+      {{ form.errors }}
+    </form>
+    <form method="post" action="{% url 'kingdoms:statistic_delete' kingdom.pk statistic.pk %}">
+      {% csrf_token %}
+      <button type="submit">Delete</button>
+    </form>
+  </div>
+  {% empty %}
+  <p>No statistics yet.</p>
+  {% endfor %}
+
+  <h3>Add a statistic</h3>
+  <form method="post" action="{% url 'kingdoms:statistic_add' kingdom.pk %}">
+    {% csrf_token %}
+    {{ stat_form.as_p }}
+    <button type="submit">Add statistic</button>
+  </form>
+</section>
+{% endblock %}

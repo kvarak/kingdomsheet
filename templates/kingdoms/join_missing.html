@@ -1,0 +1,6 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<h1>No kingdom found</h1>
+<p>This sharing link does not match any kingdom. Check the link, or <a href="{% url 'kingdoms:join' %}">enter a sharing ID</a>.</p>
+{% endblock %}
