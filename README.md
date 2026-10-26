@@ -104,6 +104,15 @@ Production settings to check in `.env`:
 
 Access codes in request paths are redacted from the gunicorn logs.
 
+## Settlements
+
+Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, border features on each side (water, bridge, wooden or stone wall), type, level, consumption, overcrowding, max item bonus, influence, infrastructure, garrisoned armies and ongoing events. These values are typed in by hand.
+
+- Add or delete settlements from the kingdom sheet in edit mode. A settlement that someone else is editing cannot be deleted.
+- Editing a settlement uses its own cogwheel and lock, separate from the kingdom's, so one player can edit the kingdom while another edits a settlement.
+- In settlement edit mode, click a + on the grid, pick a building and a rotation, then place it. Overlapping buildings are refused.
+- Building images live in `static/img/<lots>/<name>.png`, where `<lots>` is how many lots the building covers (1, 2 or 4). Add a PNG there and it appears in the picker after a rebuild. `static/img/settlement-base.png` is the empty block.
+
 ## Viewing and editing
 
 A kingdom opens read-only. The cogwheel in the top right starts editing, which locks the sheet so only one player edits at a time. Others see who is editing and how long the lock lasts.

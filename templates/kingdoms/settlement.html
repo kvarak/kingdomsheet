@@ -1,0 +1,40 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ settlement.name }}{% endblock %}
+{% block heading %}{{ settlement.name }}{% endblock %}
+{% block toolbar %}
+{% url 'kingdoms:settlement_edit_start' kingdom.pk settlement.pk as start_url %}{% url 'kingdoms:settlement_edit' kingdom.pk settlement.pk as edit_url %}
+{% include "kingdoms/includes/lock_cog.html" with what="settlement" %}
+{% endblock %}
+{% block content %}
+<p>{{ settlement.get_settlement_type_display }} in <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></p>
+
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset class="value-list">
+      <legend>Settlement</legend>
+      <p><span class="hint">Type</span> {{ settlement.get_settlement_type_display }}{% if settlement.overcrowded %} <strong class="error">(overcrowded)</strong>{% endif %}</p>
+      <p><span class="hint">Level</span> <strong>{{ settlement.level }}</strong> &middot; <span class="hint">Consumption</span> {{ settlement.consumption }}</p>
+      <p><span class="hint">Max. item bonus</span> {{ settlement.max_item_bonus }} &middot; <span class="hint">Influence</span> {{ settlement.influence }} hexes</p>
+      <p><span class="hint">Infrastructure</span>
+        {% if settlement.magical_streetlamps or settlement.paved_streets or settlement.sewer_system %}
+          {% if settlement.magical_streetlamps %}Magical streetlamps{% endif %}{% if settlement.magical_streetlamps and settlement.paved_streets or settlement.magical_streetlamps and settlement.sewer_system %}, {% endif %}{% if settlement.paved_streets %}Paved streets{% endif %}{% if settlement.paved_streets and settlement.sewer_system %}, {% endif %}{% if settlement.sewer_system %}Sewer system{% endif %}
+        {% else %}none{% endif %}
+      </p>
+    </fieldset>
+    <fieldset>
+      <legend>Garrisoned armies</legend>
+      <p>{{ settlement.garrisoned_armies|default:"-"|linebreaksbr }}</p>
+    </fieldset>
+    <fieldset>
+      <legend>Ongoing events</legend>
+      <p>{{ settlement.ongoing_events|default:"-"|linebreaksbr }}</p>
+    </fieldset>
+  </div>
+  <div class="col-right">
+    <fieldset>
+      <legend>Urban grid</legend>
+      {% include "kingdoms/includes/urban_grid.html" with editing=False %}
+    </fieldset>
+  </div>
+</div>
+{% endblock %}

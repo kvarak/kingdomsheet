@@ -2,19 +2,8 @@
 {% block title %}{{ kingdom.name }}{% endblock %}
 {% block heading %}{{ kingdom.name }}{% endblock %}
 {% block toolbar %}
-{% if editing_is_mine %}
-<a href="{% url 'kingdoms:edit' kingdom.pk %}">Continue editing</a>
-<span class="hint">({{ lock_minutes }} min left)</span>
-{% elif editor %}
-<span>&#128274; {{ editor.display_name }} is editing</span>
-<span class="hint">({{ lock_minutes }} min left)</span>
-<button type="button" class="cog" disabled title="{{ editor.display_name }} is editing">&#9881;</button>
-{% else %}
-<form method="post" action="{% url 'kingdoms:edit_start' kingdom.pk %}">
-  {% csrf_token %}
-  <button type="submit" class="cog" title="Edit sheet" aria-label="Edit sheet">&#9881;</button>
-</form>
-{% endif %}
+{% url 'kingdoms:edit_start' kingdom.pk as start_url %}{% url 'kingdoms:edit' kingdom.pk as edit_url %}
+{% include "kingdoms/includes/lock_cog.html" with what="sheet" %}
 {% endblock %}
 {% block content %}
 {% if writer and not writer.verified %}
@@ -138,7 +127,21 @@
 
     <fieldset><legend>Feats</legend><p>{{ kingdom.feats|default:"-"|linebreaksbr }}</p></fieldset>
     <fieldset><legend>Abilities</legend><p>{{ kingdom.kingdom_abilities|default:"-"|linebreaksbr }}</p></fieldset>
-    <fieldset><legend>Settlements</legend><p>{{ kingdom.settlements|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset>
+      <legend>Settlements</legend>
+      <table>
+        <tbody>
+          {% for settlement in settlements %}
+          <tr>
+            <td><a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></td>
+            <td>{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</td>
+          </tr>
+          {% empty %}
+          <tr><td>No settlements yet. Add one in edit mode.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
     <fieldset><legend>Relations</legend><p>{{ kingdom.relations|default:"-"|linebreaksbr }}</p></fieldset>
     <fieldset><legend>Ongoing events</legend><p>{{ kingdom.ongoing_events|default:"-"|linebreaksbr }}</p></fieldset>
 

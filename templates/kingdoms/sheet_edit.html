@@ -2,16 +2,8 @@
 {% block title %}{{ kingdom.name }}{% endblock %}
 {% block heading %}{{ kingdom.name }}{% endblock %}
 {% block toolbar %}
-<div class="lock-status">
-  <span class="hint">Editing. Locked for others for</span>
-  <strong id="lock-timer" data-seconds="{{ lock_seconds }}">{{ lock_minutes }} min</strong>
-</div>
-<div class="lock-buttons">
-  <form method="post" action="{% url 'kingdoms:edit_start' kingdom.pk %}">{% csrf_token %}<button type="submit" title="Reset the timer to 15 minutes">Keep editing</button></form>
-  <form method="post" action="{% url 'kingdoms:edit_stop' kingdom.pk %}">{% csrf_token %}<button type="submit" title="Stop editing and let others edit">Done</button></form>
-</div>
-<p class="hint">Saving resets the timer. Unsaved changes are lost when you press Done.</p>
-{% load static %}<script src="{% static 'kingdoms/lock-timer.js' %}" defer></script>
+{% url 'kingdoms:edit_start' kingdom.pk as start_url %}{% url 'kingdoms:edit_stop' kingdom.pk as stop_url %}
+{% include "kingdoms/includes/lock_toolbar.html" %}
 {% endblock %}
 {% block content %}
 <p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:sheet' kingdom.pk %}">View sheet</a></p>
@@ -157,7 +149,30 @@
     </fieldset>
     <fieldset>
       <legend>Settlements</legend>
-      {{ form.settlements }}
+      <table>
+        <tbody>
+          {% for settlement in settlements %}
+          <tr>
+            <td><a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></td>
+            <td>{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</td>
+            <td>
+              <form method="post" action="{% url 'kingdoms:settlement_delete' kingdom.pk settlement.pk %}">
+                {% csrf_token %}
+                <button type="submit" title="Delete {{ settlement.name }} and all its buildings">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td>No settlements yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <form method="post" action="{% url 'kingdoms:settlement_add' kingdom.pk %}">
+        {% csrf_token %}
+        {{ settlement_form.non_field_errors }}
+        {% for field in settlement_form %}<label>{{ field.label }} {{ field }}</label>{{ field.errors }}{% endfor %}
+        <button type="submit">Add settlement</button>
+      </form>
     </fieldset>
     <fieldset>
       <legend>Relations</legend>

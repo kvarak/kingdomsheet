@@ -1,7 +1,8 @@
 from django.db import IntegrityError, transaction
 
 from .access import new_access_code
-from .models import HistoryEntry, Kingdom, Statistic
+from .models import HistoryEntry, Kingdom, Placement, Settlement, Statistic
+from .settlements import catalog
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
 STATISTIC_FIELDS = ("label", "value", "display_order")
@@ -40,7 +41,7 @@ def update_sheet(kingdom, writer, values):
 def add_statistic(kingdom, writer, values):
     with transaction.atomic():
         statistic = Statistic.objects.create(kingdom=kingdom, **values)
-        _record_statistic(
+        _record_and_touch(
             kingdom, writer, HistoryEntry.Action.STATISTIC_ADDED, _created(values), statistic
         )
     return statistic
@@ -50,7 +51,7 @@ def update_statistic(kingdom, writer, statistic, values):
     with transaction.atomic():
         changes = _apply_changes(statistic, STATISTIC_FIELDS, values)
         if changes:
-            _record_statistic(
+            _record_and_touch(
                 kingdom, writer, HistoryEntry.Action.STATISTIC_EDITED, changes, statistic
             )
 
@@ -58,10 +59,91 @@ def update_statistic(kingdom, writer, statistic, values):
 def delete_statistic(kingdom, writer, statistic):
     with transaction.atomic():
         changes = _deleted(field_values(statistic, STATISTIC_FIELDS))
-        _record_statistic(
+        _record_and_touch(
             kingdom, writer, HistoryEntry.Action.STATISTIC_DELETED, changes, statistic
         )
         statistic.delete()
+
+
+SETTLEMENT_FIELDS = (
+    "name",
+    "settlement_type",
+    "level",
+    "consumption",
+    "overcrowded",
+    "max_item_bonus",
+    "influence",
+    "magical_streetlamps",
+    "paved_streets",
+    "sewer_system",
+    "borders",
+    "garrisoned_armies",
+    "ongoing_events",
+)
+
+
+def add_settlement(kingdom, writer, values):
+    with transaction.atomic():
+        settlement = Settlement.objects.create(kingdom=kingdom, **values)
+        _record_and_touch(
+            kingdom, writer, HistoryEntry.Action.SETTLEMENT_ADDED, _created(values), settlement
+        )
+    return settlement
+
+
+def update_settlement(settlement, writer, values):
+    with transaction.atomic():
+        changes = _labelled(_apply_changes(settlement, SETTLEMENT_FIELDS, values))
+        if changes:
+            _record_and_touch(
+                settlement.kingdom,
+                writer,
+                HistoryEntry.Action.SETTLEMENT_EDITED,
+                changes,
+                settlement,
+            )
+
+
+def delete_settlement(settlement, writer):
+    with transaction.atomic():
+        buildings = sorted(
+            catalog()[p.building].label
+            for p in settlement.placements.all()
+            if p.building in catalog()
+        )
+        changes = _deleted(
+            {"type": settlement.get_settlement_type_display(), "buildings": buildings}
+        )
+        _record_and_touch(
+            settlement.kingdom, writer, HistoryEntry.Action.SETTLEMENT_DELETED, changes, settlement
+        )
+        settlement.delete()
+
+
+def place_building(settlement, writer, values):
+    with transaction.atomic():
+        placement = Placement.objects.create(settlement=settlement, **values)
+        changes = _created({"building": catalog()[placement.building].label, **_where(placement)})
+        _record_and_touch(
+            settlement.kingdom, writer, HistoryEntry.Action.BUILDING_PLACED, changes, settlement
+        )
+    return placement
+
+
+def remove_building(settlement, writer, placement):
+    with transaction.atomic():
+        building = catalog().get(placement.building)
+        label = building.label if building else placement.building
+        changes = _deleted({"building": label, **_where(placement)})
+        _record_and_touch(
+            settlement.kingdom, writer, HistoryEntry.Action.BUILDING_REMOVED, changes, settlement
+        )
+        placement.delete()
+
+
+def _where(placement):
+    lot_names = ("top left", "top right", "bottom left", "bottom right")
+    return {"block": placement.block + 1, "lot": lot_names[placement.lot]}
 
 
 def _apply_changes(instance, fields, values, extra_fields=()):
@@ -80,20 +162,20 @@ def _labelled(changes, row=None):
     return {f"{prefix}{field.replace('_', ' ')}": diff for field, diff in changes.items()}
 
 
-def _record_statistic(kingdom, writer, action, changes, statistic):
-    _record(kingdom, writer, action, changes, statistic)
-    # A statistic change is a change to the kingdom sheet, so it moves the kingdom up the list.
+def _record_and_touch(kingdom, writer, action, changes, subject):
+    _record(kingdom, writer, action, changes, subject)
+    # Statistic and settlement changes move the kingdom up the "Your kingdoms" list.
     kingdom.save(update_fields=["updated_at"])
 
 
-def _record(kingdom, writer, action, changes, statistic=None):
+def _record(kingdom, writer, action, changes, subject=None):
     HistoryEntry.objects.create(
         kingdom=kingdom,
         action=action,
         display_name=writer.display_name,
         name_verified=writer.verified,
-        statistic_id=statistic.pk if statistic else None,
-        statistic_label=statistic.label if statistic else "",
+        subject_id=subject.pk if subject else None,
+        subject_label=str(subject) if subject else "",
         changes=changes,
     )
 

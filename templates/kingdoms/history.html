@@ -7,7 +7,7 @@
   <legend>Changes</legend>
   <table>
     <thead>
-      <tr><th>When</th><th>Name</th><th>Action</th><th>Statistic</th><th>Changes</th></tr>
+      <tr><th>When</th><th>Name</th><th>Action</th><th>About</th><th>Changes</th></tr>
     </thead>
     <tbody>
       {% for entry in entries %}
@@ -15,7 +15,7 @@
         <td>{{ entry.created_at|date:"Y-m-d H:i" }}</td>
         <td>{{ entry.display_name }}{% if not entry.name_verified %} <span class="hint">(not protected)</span>{% endif %}</td>
         <td>{{ entry.get_action_display }}</td>
-        <td>{{ entry.statistic_label }}</td>
+        <td>{{ entry.subject_label }}</td>
         <td>
           {% for field, diff in entry.changes.items %}
             {{ field }}: {{ diff.old|default_if_none:"none" }} to {{ diff.new|default_if_none:"none" }}<br>

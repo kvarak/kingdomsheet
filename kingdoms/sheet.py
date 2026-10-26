@@ -34,7 +34,6 @@ KINGDOM_FIELDS = (
     "event_check_dc",
     "feats",
     "kingdom_abilities",
-    "settlements",
     "relations",
     "ongoing_events",
     "description",

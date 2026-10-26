@@ -238,7 +238,7 @@ class KingdomViewTests(TestCase):
         gold = Statistic.objects.create(kingdom=kingdom, label="Gold", value=5, display_order=2)
         self.client.post(reverse("kingdoms:statistic_delete", args=[kingdom.pk, gold.pk]))
         entry = kingdom.history.get(action=HistoryEntry.Action.STATISTIC_DELETED)
-        self.assertEqual(entry.statistic_label, "Gold")
+        self.assertEqual(entry.subject_label, "Gold")
         self.assertEqual(
             entry.changes,
             {

@@ -1,8 +1,9 @@
 from django import forms
 from django.forms.models import fields_for_model
 
+from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
-from .models import Kingdom
+from .models import Kingdom, Placement, Settlement
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS
 
 PASSWORD_MIN_LENGTH = 8
@@ -30,6 +31,108 @@ class SheetForm(forms.Form):
         for field in self.fields.values():
             # Inputs are spread across the page and join the sheet form through this attribute.
             field.widget.attrs["form"] = self.FORM_ID
+
+
+class NewSettlementForm(forms.Form):
+    name = forms.CharField(label="Settlement name", max_length=120)
+    settlement_type = forms.ChoiceField(label="Type", choices=Settlement.Type.choices)
+
+
+class SettlementForm(forms.Form):
+    """Everything on the urban grid sheet except the buildings."""
+
+    FORM_ID = "settlement-form"
+    MODEL_FIELDS = (
+        "name",
+        "settlement_type",
+        "level",
+        "consumption",
+        "overcrowded",
+        "max_item_bonus",
+        "influence",
+        "magical_streetlamps",
+        "paved_streets",
+        "sewer_system",
+        "garrisoned_armies",
+        "ongoing_events",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.update(fields_for_model(Settlement, fields=self.MODEL_FIELDS))
+        for side, label in grid.SIDES:
+            self.fields[f"border_{side}"] = forms.MultipleChoiceField(
+                label=label,
+                choices=grid.BORDER_FEATURES,
+                required=False,
+                widget=forms.CheckboxSelectMultiple,
+            )
+        for field in self.fields.values():
+            field.widget.attrs["form"] = self.FORM_ID
+
+    @classmethod
+    def initial_for(cls, settlement):
+        initial = {name: getattr(settlement, name) for name in cls.MODEL_FIELDS}
+        for side, _ in grid.SIDES:
+            initial[f"border_{side}"] = settlement.borders.get(side, [])
+        return initial
+
+    def settlement_values(self):
+        """Cleaned data in the shape the Settlement model stores."""
+        values = {name: self.cleaned_data[name] for name in self.MODEL_FIELDS}
+        values["borders"] = {
+            side: self.cleaned_data[f"border_{side}"]
+            for side, _ in grid.SIDES
+            if self.cleaned_data[f"border_{side}"]
+        }
+        return values
+
+
+class PlacementForm(forms.Form):
+    building = forms.ChoiceField(widget=forms.RadioSelect)
+    block = forms.TypedChoiceField(coerce=int, choices=[(b, f"Block {b + 1}") for b in grid.BLOCKS])
+    lot = forms.TypedChoiceField(
+        coerce=int,
+        choices=[(0, "Top left"), (1, "Top right"), (2, "Bottom left"), (3, "Bottom right")],
+    )
+    rotation = forms.TypedChoiceField(
+        coerce=int, choices=[(r, f"{r} degrees") for r in grid.ROTATIONS], initial=0
+    )
+
+    def __init__(self, *args, settlement, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.settlement = settlement
+        self.fields["building"].choices = [(key, b.label) for key, b in grid.catalog().items()]
+
+    def clean(self):
+        data = super().clean()
+        if self.errors:
+            return data
+        building = grid.catalog()[data["building"]]
+        lots = grid.covered_lots(building.lots, data["lot"], data["rotation"])
+        if lots is None:
+            raise forms.ValidationError(_fit_hint(building.lots, data["rotation"]))
+        taken = grid.blocked_lots(
+            Placement.objects.filter(settlement=self.settlement), data["block"]
+        )
+        clashes = sorted(
+            {grid.catalog()[taken[lot].building].label for lot in lots if lot in taken}
+        )
+        if clashes:
+            raise forms.ValidationError(
+                f"{building.label} would overlap {', '.join(clashes)}. Pick a free spot."
+            )
+        return data
+
+
+def _fit_hint(lots, rotation):
+    if lots == 4:
+        return "A 4-lot building fills a whole block, so start it in the top left lot."
+    if rotation in (0, 180):
+        return (
+            "A horizontal 2-lot building must start in a left lot. Use 90 degrees to stand it up."
+        )
+    return "A vertical 2-lot building must start in a top lot."
 
 
 class JoinForm(forms.Form):

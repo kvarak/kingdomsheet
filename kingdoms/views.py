@@ -14,7 +14,15 @@ from .access import (
     remember_kingdom,
     remembered_kingdoms,
 )
-from .forms import JoinForm, KingdomForm, ProtectForm, SelectNameForm, SheetForm, StatisticForm
+from .forms import (
+    JoinForm,
+    KingdomForm,
+    NewSettlementForm,
+    ProtectForm,
+    SelectNameForm,
+    SheetForm,
+    StatisticForm,
+)
 from .models import Statistic
 from .names import (
     NameSelectionError,
@@ -59,8 +67,35 @@ def _render_home(request, create_form, join_form, status=200):
     return render(request, "kingdoms/home.html", context, status=status)
 
 
+def lock_context(request, instance):
+    """Who holds the edit lock on a kingdom or settlement, for the toolbar templates."""
+    editor = locks.active_editor(instance)
+    seconds = locks.seconds_left(instance)
+    return {
+        "editor": editor,
+        "editing_is_mine": editor is not None
+        and getattr(current_writer(request), "player_id", None) == editor.pk,
+        "lock_seconds": seconds,
+        "lock_minutes": -(-seconds // 60),
+    }
+
+
+def take_lock(request, instance, view_url):
+    """Return (writer, None) once this name holds the edit lock, or (None, redirect response)."""
+    writer = current_editor(request)
+    if writer is None:
+        return None, _names_redirect(view_url)
+    if not locks.acquire(instance, writer.player_id):
+        instance.refresh_from_db()
+        messages.error(
+            request,
+            f"{locks.active_editor(instance)} is editing {instance}. Try again when they are done.",
+        )
+        return None, redirect(view_url)
+    return writer, None
+
+
 def _sheet_context(request, kingdom, sheet_form):
-    editor = locks.active_editor(kingdom)
     return {
         "kingdom": kingdom,
         "share_url": request.build_absolute_uri(
@@ -69,21 +104,28 @@ def _sheet_context(request, kingdom, sheet_form):
         "writer": current_writer(request),
         "form": sheet_form,
         "sheet": build_sheet(kingdom, sheet_form),
-        "editor": editor,
-        "editing_is_mine": editor is not None
-        and getattr(current_writer(request), "player_id", None) == editor.pk,
-        "lock_seconds": locks.seconds_left(kingdom),
-        "lock_minutes": -(-locks.seconds_left(kingdom) // 60),
+        "settlements": kingdom.settlement_set.all(),
+        **lock_context(request, kingdom),
     }
 
 
-def _render_edit(request, kingdom, *, sheet_form=None, stat_form=None, row_forms=None, status=200):
+def render_edit(
+    request,
+    kingdom,
+    *,
+    sheet_form=None,
+    stat_form=None,
+    row_forms=None,
+    settlement_form=None,
+    status=200,
+):
     """Render the editable sheet. `row_forms` maps statistic IDs to forms that failed validation."""
     sheet_form = sheet_form or SheetForm(initial=sheet_values(kingdom))
     row_forms = row_forms or {}
     context = _sheet_context(request, kingdom, sheet_form)
     context["sheet_errors"] = error_messages(sheet_form) if sheet_form.is_bound else []
     context["stat_form"] = stat_form or StatisticForm(initial={"value": 0, "display_order": 0})
+    context["settlement_form"] = settlement_form or NewSettlementForm()
     context["statistic_rows"] = [
         (
             statistic,
@@ -93,22 +135,6 @@ def _render_edit(request, kingdom, *, sheet_form=None, stat_form=None, row_forms
         for statistic in kingdom.statistics.all()
     ]
     return render(request, "kingdoms/sheet_edit.html", context, status=status)
-
-
-def _take_lock(request, kingdom):
-    """Return (writer, None) once this name holds the edit lock, or (None, redirect response)."""
-    writer = current_editor(request)
-    if writer is None:
-        return None, _names_redirect(_sheet_url(kingdom.pk))
-    if not locks.acquire(kingdom, writer.player_id):
-        kingdom.refresh_from_db()
-        messages.error(
-            request,
-            f"{locks.active_editor(kingdom)} is editing this kingdom. "
-            "Try again when they are done.",
-        )
-        return None, redirect(_sheet_url(kingdom.pk))
-    return writer, None
 
 
 def home(request):
@@ -164,7 +190,7 @@ def sheet(request, pk):
 @require_POST
 def edit_start(request, pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    _, refused = _take_lock(request, kingdom)
+    _, refused = take_lock(request, kingdom, _sheet_url(kingdom.pk))
     return refused or redirect(_edit_url(pk))
 
 
@@ -184,14 +210,14 @@ def edit(request, pk):
         writer = current_editor(request)
         if writer is None or not locks.holds_lock(kingdom, writer.player_id):
             return redirect(_sheet_url(pk))
-        return _render_edit(request, kingdom)
+        return render_edit(request, kingdom)
 
-    writer, refused = _take_lock(request, kingdom)
+    writer, refused = take_lock(request, kingdom, _sheet_url(kingdom.pk))
     if refused:
         return refused
     form = SheetForm(request.POST)
     if not form.is_valid():
-        return _render_edit(request, kingdom, sheet_form=form, status=400)
+        return render_edit(request, kingdom, sheet_form=form, status=400)
     services.update_sheet(kingdom, writer, form.cleaned_data)
     return redirect(_edit_url(pk))
 
@@ -199,12 +225,12 @@ def edit(request, pk):
 @require_POST
 def statistic_add(request, pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer, refused = _take_lock(request, kingdom)
+    writer, refused = take_lock(request, kingdom, _sheet_url(kingdom.pk))
     if refused:
         return refused
     form = StatisticForm(request.POST)
     if not form.is_valid():
-        return _render_edit(request, kingdom, stat_form=form, status=400)
+        return render_edit(request, kingdom, stat_form=form, status=400)
     services.add_statistic(kingdom, writer, form.cleaned_data)
     return redirect(_edit_url(pk))
 
@@ -212,13 +238,13 @@ def statistic_add(request, pk):
 @require_POST
 def statistic_edit(request, pk, stat_pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer, refused = _take_lock(request, kingdom)
+    writer, refused = take_lock(request, kingdom, _sheet_url(kingdom.pk))
     if refused:
         return refused
     statistic = get_object_or_404(Statistic, pk=stat_pk, kingdom=kingdom)
     form = StatisticForm(request.POST)
     if not form.is_valid():
-        return _render_edit(request, kingdom, row_forms={statistic.pk: form}, status=400)
+        return render_edit(request, kingdom, row_forms={statistic.pk: form}, status=400)
     services.update_statistic(kingdom, writer, statistic, form.cleaned_data)
     return redirect(_edit_url(pk))
 
@@ -226,7 +252,7 @@ def statistic_edit(request, pk, stat_pk):
 @require_POST
 def statistic_delete(request, pk, stat_pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer, refused = _take_lock(request, kingdom)
+    writer, refused = take_lock(request, kingdom, _sheet_url(kingdom.pk))
     if refused:
         return refused
     statistic = get_object_or_404(Statistic, pk=stat_pk, kingdom=kingdom)

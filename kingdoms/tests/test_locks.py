@@ -43,7 +43,7 @@ class EditLockTests(TestCase):
     def test_second_player_is_locked_out_while_someone_edits(self):
         response = self.bob.post(self.start_url, follow=True)
         self.assertRedirects(response, self.view_url)
-        self.assertContains(response, f"{PLAYER_NAME} is editing this kingdom")
+        self.assertContains(response, f"{PLAYER_NAME} is editing Stolen Lands")
         self.assertRedirects(self.bob.get(self.edit_url), self.view_url)
 
         self.bob.post(self.edit_url, sheet_post_data(self.kingdom, name="Bobland"))

@@ -1,0 +1,38 @@
+{% comment %}
+The PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, with border features on each side.
+With `editing`, free lots link to the placement form and buildings get a remove button.
+{% endcomment %}
+{% load static %}
+<div class="urban-grid">
+  {% for side, label in sides %}
+  <div class="grid-border grid-border-{{ side }}">
+    {% if editing %}
+      {% for field_side, field in border_fields.items %}{% if field_side == side %}{{ field }}{% endif %}{% endfor %}
+    {% else %}
+      {% for border_side, text in borders.items %}{% if border_side == side and text %}<span class="hint">{{ text }}</span>{% endif %}{% endfor %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  <div class="blocks">
+    {% for block in blocks %}
+    <div class="block" style="background-image: url('{% static block_image %}')" aria-label="Block {{ block.number|add:1 }}">
+      {% for item in block.items %}
+      <div class="building{% if item.vertical %} vertical{% endif %}" style="grid-column: {{ item.column }} / span {{ item.column_span }}; grid-row: {{ item.row }} / span {{ item.row_span }}; --rotation: {{ item.rotation }}deg" title="{{ item.building.label }}">
+        <img src="{{ item.building.url }}" alt="{{ item.building.label }}">
+        {% if editing %}
+        <form method="post" action="{% url 'kingdoms:building_remove' kingdom.pk settlement.pk item.placement.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="remove-building" title="Remove {{ item.building.label }}" aria-label="Remove {{ item.building.label }}">&times;</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% if editing %}
+      {% for lot in block.free %}
+      <a class="free-lot{% if lot.selected %} selected{% endif %}" href="?block={{ block.number }}&amp;lot={{ lot.lot }}#place" style="grid-column: {{ lot.column }}; grid-row: {{ lot.row }}" title="Place a building here" aria-label="Place a building in block {{ block.number|add:1 }}, lot {{ lot.lot|add:1 }}">+</a>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>

@@ -52,7 +52,6 @@ class Kingdom(models.Model):
 
     feats = models.TextField(blank=True)
     kingdom_abilities = models.TextField(blank=True)
-    settlements = models.TextField(blank=True)
     relations = models.TextField(blank=True)
     ongoing_events = models.TextField(blank=True)
 
@@ -142,6 +141,67 @@ class KingdomCommodity(models.Model):
         return self.get_commodity_display()
 
 
+class Settlement(models.Model):
+    """One settlement and its urban grid, following the PF2e urban grid sheet."""
+
+    class Type(models.TextChoices):
+        VILLAGE = "village", "Village"
+        TOWN = "town", "Town"
+        CITY = "city", "City"
+        METROPOLIS = "metropolis", "Metropolis"
+
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="settlement_set")
+    name = models.CharField(max_length=120)
+    settlement_type = models.CharField(
+        "type", max_length=20, choices=Type.choices, default=Type.VILLAGE
+    )
+    level = models.IntegerField(default=1)
+    consumption = models.IntegerField(default=0)
+    overcrowded = models.BooleanField(default=False)
+    max_item_bonus = models.IntegerField(default=0)
+    influence = models.IntegerField("influence (hexes)", default=0)
+    magical_streetlamps = models.BooleanField(default=False)
+    paved_streets = models.BooleanField(default=False)
+    sewer_system = models.BooleanField(default=False)
+    # Border features per side, for example {"north": ["water", "bridge"]}.
+    borders = models.JSONField(default=dict, blank=True)
+    garrisoned_armies = models.TextField(blank=True)
+    ongoing_events = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Edit lock, separate from the kingdom's. See kingdoms.locks.
+    editor = models.ForeignKey(
+        "PlayerName", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    editor_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class Placement(models.Model):
+    """A building on the urban grid. `block` is 0-8 left to right, top to bottom.
+
+    `lot` is the building's top-left lot in its block: 0 top left, 1 top right, 2 bottom left,
+    3 bottom right. Which lots it covers depends on its size and rotation.
+    """
+
+    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name="placements")
+    building = models.CharField(max_length=80)
+    block = models.PositiveSmallIntegerField()
+    lot = models.PositiveSmallIntegerField()
+    rotation = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["block", "lot", "id"]
+
+    def __str__(self):
+        return self.building
+
+
 class Statistic(models.Model):
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="statistics")
     label = models.CharField(max_length=80)
@@ -181,13 +241,19 @@ class HistoryEntry(models.Model):
         STATISTIC_ADDED = "statistic_added", "Statistic added"
         STATISTIC_EDITED = "statistic_edited", "Statistic edited"
         STATISTIC_DELETED = "statistic_deleted", "Statistic deleted"
+        SETTLEMENT_ADDED = "settlement_added", "Settlement added"
+        SETTLEMENT_EDITED = "settlement_edited", "Settlement edited"
+        SETTLEMENT_DELETED = "settlement_deleted", "Settlement deleted"
+        BUILDING_PLACED = "building_placed", "Building placed"
+        BUILDING_REMOVED = "building_removed", "Building removed"
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.PROTECT, related_name="history")
     action = models.CharField(max_length=32, choices=Action.choices)
     display_name = models.CharField(max_length=40)
     name_verified = models.BooleanField()
-    statistic_id = models.PositiveBigIntegerField(null=True, blank=True)
-    statistic_label = models.CharField(max_length=80, blank=True)
+    # What the entry is about besides the kingdom itself: a statistic or a settlement.
+    subject_id = models.PositiveBigIntegerField(null=True, blank=True)
+    subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 

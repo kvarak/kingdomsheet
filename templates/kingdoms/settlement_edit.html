@@ -1,0 +1,81 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ settlement.name }}{% endblock %}
+{% block heading %}{{ settlement.name }}{% endblock %}
+{% block toolbar %}
+{% url 'kingdoms:settlement_edit_start' kingdom.pk settlement.pk as start_url %}{% url 'kingdoms:settlement_edit_stop' kingdom.pk settlement.pk as stop_url %}
+{% include "kingdoms/includes/lock_toolbar.html" %}
+{% endblock %}
+{% block content %}
+<p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">View settlement</a> &middot; <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></p>
+
+{# Settlement inputs join this form through their form attribute, so they can sit around the grid. #}
+<form id="{{ form.FORM_ID }}" method="post" action="{% url 'kingdoms:settlement_edit' kingdom.pk settlement.pk %}">{% csrf_token %}</form>
+
+{% if form_errors %}
+<div class="error">
+  <p>The settlement was not saved. Fix these fields:</p>
+  <ul>{% for message in form_errors %}<li>{{ message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset>
+      <legend>Settlement</legend>
+      <label>Name {{ form.name }}</label>
+      <label>Type {{ form.settlement_type }}</label>
+      <label>Level {{ form.level }}</label>
+      <label>Consumption {{ form.consumption }}</label>
+      <label>{{ form.overcrowded }} Overcrowded</label>
+      <label>Max. item bonus {{ form.max_item_bonus }}</label>
+      <label>Influence {{ form.influence }} hexes</label>
+      <p class="hint">Infrastructure</p>
+      <label>{{ form.magical_streetlamps }} Magical streetlamps</label>
+      <label>{{ form.paved_streets }} Paved streets</label>
+      <label>{{ form.sewer_system }} Sewer system</label>
+    </fieldset>
+    <fieldset>
+      <legend>Garrisoned armies</legend>
+      {{ form.garrisoned_armies }}
+    </fieldset>
+    <fieldset>
+      <legend>Ongoing events</legend>
+      {{ form.ongoing_events }}
+    </fieldset>
+    <p><button type="submit" form="{{ form.FORM_ID }}">Save settlement</button></p>
+  </div>
+
+  <div class="col-right">
+    <fieldset>
+      <legend>Urban grid</legend>
+      <p class="hint">Click a + to place a building there. Border checkboxes are saved with Save settlement.</p>
+      {% include "kingdoms/includes/urban_grid.html" with editing=True %}
+    </fieldset>
+
+    <fieldset id="place">
+      <legend>Place a building</legend>
+      <form method="post" action="{% url 'kingdoms:building_place' kingdom.pk settlement.pk %}">
+        {% csrf_token %}
+        {% if placement_form.errors %}<div class="error">{{ placement_form.non_field_errors }}{{ placement_form.building.errors }}</div>{% endif %}
+        <label>{{ placement_form.block.label }} {{ placement_form.block }}</label>
+        <label>{{ placement_form.lot.label }} {{ placement_form.lot }}</label>
+        <label>{{ placement_form.rotation.label }} {{ placement_form.rotation }}</label>
+        <button type="submit">Place building</button>
+        {% for lots, buildings in catalog %}
+        <p class="hint">{{ lots }} lot{{ lots|pluralize }}{% if lots == 2 %} (rotate 90 degrees to stand it up){% elif lots == 4 %} (fills a whole block){% endif %}</p>
+        <div class="building-picker">
+          {% for building in buildings %}
+          <label class="building-choice">
+            <input type="radio" name="building" value="{{ building.key }}" required{% if placement_form.building.value == building.key %} checked{% endif %}>
+            <img src="{{ building.url }}" alt="" loading="lazy">
+            <span>{{ building.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        <p><button type="submit">Place building</button></p>
+      </form>
+    </fieldset>
+  </div>
+</div>
+{% endblock %}

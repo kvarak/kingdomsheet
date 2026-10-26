@@ -1,0 +1,14 @@
+{% comment %}Top-right edit control on a read-only page. Needs start_url, edit_url and lock_context.{% endcomment %}
+{% if editing_is_mine %}
+<a href="{{ edit_url }}">Continue editing</a>
+<span class="hint">({{ lock_minutes }} min left)</span>
+{% elif editor %}
+<span>&#128274; {{ editor.display_name }} is editing</span>
+<span class="hint">({{ lock_minutes }} min left)</span>
+<button type="button" class="cog" disabled title="{{ editor.display_name }} is editing">&#9881;</button>
+{% else %}
+<form method="post" action="{{ start_url }}">
+  {% csrf_token %}
+  <button type="submit" class="cog" title="Edit" aria-label="Edit {{ what }}">&#9881;</button>
+</form>
+{% endif %}
