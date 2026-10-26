@@ -184,14 +184,6 @@
 
     <p><button type="submit" form="{{ form.FORM_ID }}">Save sheet</button></p>
 
-    <fieldset>
-      <legend>Sharing</legend>
-      <p class="hint">Sharing ID:</p>
-      <p><code>{{ kingdom.access_code }}</code></p>
-      <p class="hint">Share this link with your group:</p>
-      <p><code>{{ share_url }}</code></p>
-      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
-    </fieldset>
 
     <fieldset>
       <legend>Custom statistics</legend>
@@ -236,3 +228,4 @@
   </div>
 </div>
 {% endblock %}
+{% block footer %}{% include "kingdoms/includes/share_line.html" %}{% endblock %}

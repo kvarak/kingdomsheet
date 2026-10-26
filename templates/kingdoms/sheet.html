@@ -159,14 +159,7 @@
         </tbody>
       </table>
     </fieldset>
-
-    <fieldset>
-      <legend>Sharing</legend>
-      <p class="hint">Share this link with your group:</p>
-      <p><code>{{ share_url }}</code></p>
-      <p class="hint">Sharing ID: <code>{{ kingdom.access_code }}</code></p>
-      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
-    </fieldset>
   </div>
 </div>
 {% endblock %}
+{% block footer %}{% include "kingdoms/includes/share_line.html" %}{% endblock %}
