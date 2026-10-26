@@ -2,8 +2,11 @@ COMPOSE ?= docker compose
 
 .PHONY: serve stop check migrate logs
 
+# Ctrl+C stops following the logs. The services keep running until `make stop`.
 serve: .env
 	$(COMPOSE) up -d --build --wait
+	@echo "Running at http://localhost:8000/ - following logs, Ctrl+C to detach."
+	$(COMPOSE) logs -f --tail=20
 
 stop: .env
 	$(COMPOSE) stop

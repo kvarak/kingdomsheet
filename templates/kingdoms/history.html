@@ -1,28 +1,31 @@
 {% extends "kingdoms/base.html" %}
 {% block title %}History: {{ kingdom.name }}{% endblock %}
+{% block heading %}History: {{ kingdom.name }}{% endblock %}
 {% block content %}
-<h1>History: {{ kingdom.name }}</h1>
 <p><a href="{% url 'kingdoms:sheet' kingdom.pk %}">Back to sheet</a></p>
-<table>
-  <thead>
-    <tr><th>When</th><th>Name</th><th>Action</th><th>Statistic</th><th>Changes</th></tr>
-  </thead>
-  <tbody>
-    {% for entry in entries %}
-    <tr>
-      <td>{{ entry.created_at|date:"Y-m-d H:i" }}</td>
-      <td>{{ entry.display_name }} <small>({{ entry.attribution }})</small></td>
-      <td>{{ entry.get_action_display }}</td>
-      <td>{{ entry.statistic_label }}</td>
-      <td>
-        {% for field, diff in entry.changes.items %}
-          {{ field }}: {{ diff.old|default_if_none:"none" }} to {{ diff.new|default_if_none:"none" }}<br>
-        {% endfor %}
-      </td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="5">No history yet.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<fieldset>
+  <legend>Changes</legend>
+  <table>
+    <thead>
+      <tr><th>When</th><th>Name</th><th>Action</th><th>Statistic</th><th>Changes</th></tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{{ entry.display_name }} <span class="hint">({{ entry.attribution }})</span></td>
+        <td>{{ entry.get_action_display }}</td>
+        <td>{{ entry.statistic_label }}</td>
+        <td>
+          {% for field, diff in entry.changes.items %}
+            {{ field }}: {{ diff.old|default_if_none:"none" }} to {{ diff.new|default_if_none:"none" }}<br>
+          {% endfor %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">No history yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</fieldset>
 {% endblock %}

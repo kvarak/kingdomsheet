@@ -1,10 +1,13 @@
 {% extends "kingdoms/base.html" %}
 {% block title %}Join a kingdom{% endblock %}
+{% block heading %}Join {{ kingdom.name }}?{% endblock %}
 {% block content %}
-<h1>Join {{ kingdom.name }}?</h1>
-<p>Joining adds this kingdom to your list. You can view and edit its sheet after joining.</p>
-<form method="post" action="{% url 'kingdoms:join_link' kingdom.access_code %}">
-  {% csrf_token %}
-  <button type="submit">Join kingdom</button>
-</form>
+<fieldset>
+  <legend>Join</legend>
+  <p>Joining adds this kingdom to your list. You can view and edit its sheet after joining.</p>
+  <form method="post" action="{% url 'kingdoms:join_link' kingdom.access_code %}">
+    {% csrf_token %}
+    <button type="submit">Join kingdom</button>
+  </form>
+</fieldset>
 {% endblock %}

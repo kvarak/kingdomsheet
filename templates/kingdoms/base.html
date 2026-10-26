@@ -8,10 +8,11 @@
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
 </head>
 <body>
-  <header>
-    <a href="{% url 'kingdoms:home' %}">Kingdom Sheet</a>
-    <nav><a href="{% url 'kingdoms:names' %}">Name</a></nav>
-  </header>
-  <main>{% block content %}{% endblock %}</main>
+  <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
+  <p class="hint"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">Name</a></p>
+
+  {% block content %}{% endblock %}
+
+  <p class="hint">Your name and kingdom list are remembered with a session cookie in this browser.</p>
 </body>
 </html>

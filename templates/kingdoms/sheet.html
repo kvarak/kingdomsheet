@@ -1,51 +1,81 @@
 {% extends "kingdoms/base.html" %}
 {% block title %}{{ kingdom.name }}{% endblock %}
+{% block heading %}{{ kingdom.name }}{% endblock %}
 {% block content %}
-<h1>{{ kingdom.name }}</h1>
-<p>Sharing ID: <code>{{ kingdom.access_code }}</code></p>
-<p>Share this link with your group: <code>{{ share_url }}</code></p>
-<p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a> | <a href="{% url 'kingdoms:home' %}">All kingdoms</a></p>
-
 {% if writer %}
-  <p>Editing as <strong>{{ writer.display_name }}</strong>
-    ({% if writer.verified %}protected, password verified{% else %}open, not protected{% endif %}).</p>
+<p>Editing as <strong>{{ writer.display_name }}</strong>
+  <span class="hint">({% if writer.verified %}protected, password verified{% else %}open, not protected{% endif %})</span></p>
 {% else %}
-  <p>Choose a name before editing: <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">select a name</a></p>
+<p>Choose a name before editing: <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">select a name</a></p>
 {% endif %}
 
-<section>
-  <h2>Details</h2>
-  <form method="post" action="{% url 'kingdoms:sheet' kingdom.pk %}">
-    {% csrf_token %}
-    {{ details_form.as_p }}
-    <button type="submit">Save details</button>
-  </form>
-</section>
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset>
+      <legend>Details</legend>
+      <form method="post" action="{% url 'kingdoms:sheet' kingdom.pk %}">
+        {% csrf_token %}
+        {{ details_form.as_p }}
+        <button type="submit">Save details</button>
+      </form>
+    </fieldset>
 
-<section>
-  <h2>Statistics</h2>
-  {% for statistic, form in rows %}
-  <div class="stat-row">
-    <form method="post" action="{% url 'kingdoms:statistic_edit' kingdom.pk statistic.pk %}">
-      {% csrf_token %}
-      {{ form.label }} {{ form.value }} {{ form.display_order }}
-      <button type="submit">Save</button>
-      {{ form.errors }}
-    </form>
-    <form method="post" action="{% url 'kingdoms:statistic_delete' kingdom.pk statistic.pk %}">
-      {% csrf_token %}
-      <button type="submit">Delete</button>
-    </form>
+    <fieldset>
+      <legend>Sharing</legend>
+      <p class="hint">Sharing ID:</p>
+      <p><code>{{ kingdom.access_code }}</code></p>
+      <p class="hint">Share this link with your group:</p>
+      <p><code>{{ share_url }}</code></p>
+      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
+    </fieldset>
   </div>
-  {% empty %}
-  <p>No statistics yet.</p>
-  {% endfor %}
 
-  <h3>Add a statistic</h3>
-  <form method="post" action="{% url 'kingdoms:statistic_add' kingdom.pk %}">
-    {% csrf_token %}
-    {{ stat_form.as_p }}
-    <button type="submit">Add statistic</button>
-  </form>
-</section>
+  <div class="col-right">
+    <fieldset>
+      <legend>Statistics</legend>
+      <table>
+        <thead>
+          <tr><th>Label</th><th>Value</th><th>Order</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for statistic, form in rows %}
+          {# Inputs sit in separate cells and join their row's form through the form attribute. #}
+          <tr>
+            <td><input name="label" value="{{ form.label.value|default_if_none:'' }}" maxlength="80" required form="stat-{{ statistic.pk }}" aria-label="Label"></td>
+            <td><input type="number" name="value" value="{{ form.value.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Value"></td>
+            <td><input type="number" name="display_order" value="{{ form.display_order.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Order"></td>
+            <td>
+              <form id="stat-{{ statistic.pk }}" method="post" action="{% url 'kingdoms:statistic_edit' kingdom.pk statistic.pk %}">
+                {% csrf_token %}
+                <button type="submit">Save</button>
+              </form>
+              <form method="post" action="{% url 'kingdoms:statistic_delete' kingdom.pk statistic.pk %}">
+                {% csrf_token %}
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% if form.errors %}
+          <tr><td colspan="4">{{ form.errors }}</td></tr>
+          {% endif %}
+          {% empty %}
+          <tr><td colspan="4">No statistics yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset>
+      <legend>Add a statistic</legend>
+      <form method="post" action="{% url 'kingdoms:statistic_add' kingdom.pk %}">
+        {% csrf_token %}
+        {{ stat_form.non_field_errors }}
+        {% for field in stat_form %}
+        <label>{{ field.label }} {{ field }}</label>{{ field.errors }}
+        {% endfor %}
+        <button type="submit">Add statistic</button>
+      </form>
+    </fieldset>
+  </div>
+</div>
 {% endblock %}

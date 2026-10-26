@@ -1,7 +1,7 @@
 import logging
 import re
 
-from django.test import SimpleTestCase, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 
 from ..models import HistoryEntry, Kingdom, Statistic
@@ -26,6 +26,12 @@ class KingdomViewTests(TestCase):
     def test_home_renders_for_anonymous_visitor(self):
         response = self.client.get(reverse("kingdoms:home"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No name selected")
+
+    def test_home_shows_current_name(self):
+        self.select_name()
+        response = self.client.get(reverse("kingdoms:home"))
+        self.assertContains(response, f"Your name: <strong>{PLAYER_NAME}</strong>")
 
     def test_writes_require_a_selected_name(self):
         response = self.client.post(
@@ -253,6 +259,27 @@ class KingdomViewTests(TestCase):
         )
         kingdom.refresh_from_db()
         self.assertEqual(kingdom.name, "Stolen Lands")
+
+
+class BrowserCsrfTests(TestCase):
+    def test_referrer_policy_keeps_origin_on_same_site_posts(self):
+        # With "no-referrer", browsers send `Origin: null` and every form post fails CSRF.
+        response = self.client.get(reverse("kingdoms:names"))
+        self.assertEqual(response.headers["Referrer-Policy"], "same-origin")
+
+    def test_form_post_with_browser_origin_passes_csrf(self):
+        browser = Client(enforce_csrf_checks=True)
+        browser.get(reverse("kingdoms:names"))
+        response = browser.post(
+            reverse("kingdoms:names"),
+            {
+                "display_name": PLAYER_NAME,
+                "next": reverse("kingdoms:home"),
+                "csrfmiddlewaretoken": browser.cookies["csrftoken"].value,
+            },
+            headers={"Origin": "http://testserver"},
+        )
+        self.assertEqual(response.status_code, 302)
 
 
 class RedactionTests(SimpleTestCase):

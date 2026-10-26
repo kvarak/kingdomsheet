@@ -47,7 +47,7 @@ Other targets:
 
 | Command | What it does |
 | --- | --- |
-| `make serve` | Build and start the web and database services |
+| `make serve` | Build and start the web and database services, then follow their logs (Ctrl+C detaches, services keep running) |
 | `make stop` | Stop the services (data is kept) |
 | `make check` | Run ruff lint and format checks and the test suite inside Docker |
 | `make migrate` | Apply database migrations |

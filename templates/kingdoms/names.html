@@ -1,46 +1,55 @@
 {% extends "kingdoms/base.html" %}
-{% block title %}Names{% endblock %}
+{% block title %}Name{% endblock %}
+{% block heading %}Name{% endblock %}
 {% block content %}
-<h1>Name</h1>
-
-{% if writer %}
-  <p>Current name: <strong>{{ writer.display_name }}</strong>
-    ({% if writer.verified %}protected, password verified{% else %}open, not protected{% endif %})</p>
-  <form method="post" action="{% url 'kingdoms:forget_name' %}">
-    {% csrf_token %}
-    <button type="submit">Clear name</button>
-  </form>
-{% else %}
-  <p>No name is selected. Choose a name before you edit a kingdom.</p>
-{% endif %}
-
+<p>Your name is shown in each kingdom's history. Protect it with a password so only you can use it.</p>
 {% if rate_limited %}
-  <p class="error">Too many attempts for this name. Try again in a few minutes.</p>
+<p class="error">Too many attempts for this name. Try again in a few minutes.</p>
 {% endif %}
 
-<section>
-  <h2>Select a name</h2>
-  <p>Enter a name. Protected names need their password. Anyone can use an open name.</p>
-  <form method="post" action="{% url 'kingdoms:names' %}">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next_url }}">
-    {{ select_form.as_p }}
-    <button type="submit">Use this name</button>
-  </form>
-</section>
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset>
+      <legend>Current name</legend>
+      {% if writer %}
+      <p>Current name: <strong>{{ writer.display_name }}</strong></p>
+      <p class="hint">{% if writer.verified %}Protected, password verified.{% else %}Open, not protected.{% endif %}</p>
+      <form method="post" action="{% url 'kingdoms:forget_name' %}">
+        {% csrf_token %}
+        <button type="submit">Clear name</button>
+      </form>
+      {% else %}
+      <p>No name is selected. Choose a name before you edit a kingdom.</p>
+      {% endif %}
+    </fieldset>
+  </div>
 
-{% if writer and not writer.verified %}
-<section>
-  <h2>Protect this name</h2>
-  <p>Set a password so only you can use this name.</p>
-  <form method="post" action="{% url 'kingdoms:names' %}">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="protect">
-    <input type="hidden" name="next" value="{{ next_url }}">
-    <input type="hidden" name="display_name" value="{{ writer.display_name }}">
-    {{ protect_form.as_p }}
-    <button type="submit">Protect name</button>
-  </form>
-</section>
-{% endif %}
+  <div class="col-right">
+    <fieldset>
+      <legend>Select a name</legend>
+      <p class="hint">Protected names need their password. Anyone can use an open name.</p>
+      <form method="post" action="{% url 'kingdoms:names' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {{ select_form.as_p }}
+        <button type="submit">Use this name</button>
+      </form>
+    </fieldset>
+
+    {% if writer and not writer.verified %}
+    <fieldset>
+      <legend>Protect this name</legend>
+      <p class="hint">Set a password so only you can use this name.</p>
+      <form method="post" action="{% url 'kingdoms:names' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="protect">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <input type="hidden" name="display_name" value="{{ writer.display_name }}">
+        {{ protect_form.as_p }}
+        <button type="submit">Protect name</button>
+      </form>
+    </fieldset>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

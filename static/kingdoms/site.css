@@ -1,56 +1,84 @@
+/* Layout and look follow kvarak/fh-items. */
 body {
   font-family: system-ui, sans-serif;
-  margin: 0;
-  color: #222;
+  max-width: 80rem;
+  margin: 2rem auto;
+  line-height: 1.5;
+  padding: 0 1rem;
 }
 
-header, main {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 0.75rem 1rem;
+fieldset {
+  margin-bottom: 1.5rem;
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid #ccc;
+label {
+  display: inline-block;
+  margin: 0.25rem 0.75rem 0.25rem 0;
 }
 
-section {
-  margin-top: 1.5rem;
+input[type="number"] {
+  width: 4.5rem;
 }
 
 textarea {
   width: 100%;
   min-height: 4rem;
+  box-sizing: border-box;
+}
+
+.page-columns {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.col-left {
+  flex: 0 0 33%;
+  max-width: 33%;
+}
+
+.col-right {
+  flex: 1 1 67%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+@media (max-width: 700px) {
+  .page-columns {
+    flex-direction: column;
+  }
+  .col-left, .col-right {
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0.25rem 0;
 }
 
 .errorlist, .error {
-  color: #a00;
+  color: #c00;
 }
 
-.stat-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-
-.stat-row form {
-  display: inline-flex;
-  gap: 0.25rem;
-  align-items: center;
-  flex-wrap: wrap;
+code {
+  word-break: break-all;
 }
 
 table {
-  width: 100%;
   border-collapse: collapse;
+  width: 100%;
 }
 
 th, td {
-  border-bottom: 1px solid #ddd;
-  padding: 0.35rem;
   text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #ddd;
   vertical-align: top;
+}
+
+td form {
+  display: inline;
 }

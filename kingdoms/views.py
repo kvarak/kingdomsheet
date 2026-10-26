@@ -45,6 +45,7 @@ def _safe_next(request, value):
 def _render_home(request, create_form, join_form, status=200):
     context = {
         "kingdoms": remembered_kingdoms(request),
+        "writer": current_writer(request),
         "create_form": create_form,
         "join_form": join_form,
     }

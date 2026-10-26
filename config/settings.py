@@ -108,7 +108,9 @@ SESSION_COOKIE_SECURE = HTTPS
 CSRF_COOKIE_SECURE = HTTPS
 
 # Sharing links contain access codes, so browsers must not send the URL to other sites.
-SECURE_REFERRER_POLICY = "no-referrer"
+# "same-origin" rather than "no-referrer": with no-referrer, browsers send `Origin: null`
+# on form posts and Django's CSRF check rejects them.
+SECURE_REFERRER_POLICY = "same-origin"
 
 LOGGING = {
     "version": 1,
