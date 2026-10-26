@@ -1,0 +1,68 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ army.name }}{% endblock %}
+{% block heading %}{{ army.name }}{% endblock %}
+{% block toolbar %}
+{% url 'kingdoms:army_edit_start' kingdom.pk settlement.pk army.pk as start_url %}{% url 'kingdoms:army_edit_stop' kingdom.pk settlement.pk army.pk as stop_url %}
+{% include "kingdoms/includes/lock_toolbar.html" %}
+{% endblock %}
+{% block content %}
+<p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">View army</a> &middot; <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></p>
+
+{% if form_errors %}
+<div class="error">
+  <p>The army was not saved. Fix these fields:</p>
+  <ul>{% for message in form_errors %}<li>{{ message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form method="post" action="{% url 'kingdoms:army_edit' kingdom.pk settlement.pk army.pk %}">
+  {% csrf_token %}
+  <div class="page-columns">
+    <div class="col-left">
+      <fieldset>
+        <legend>Army</legend>
+        <label>Army name {{ form.name }}</label>
+        <label>Level {{ form.level }}</label>
+        <label>Alignment {{ form.alignment }}</label>
+        <label>Army type {{ form.army_type }}</label>
+        <br>
+        <label>Scouting {{ form.scouting }}</label>
+        <label>Scouting DC {{ form.scouting_dc }}</label>
+        <label>Recruitment DC {{ form.recruitment_dc }}</label>
+        <br>
+        <label>AC {{ form.ac }}</label>
+        <label>Maneuver {{ form.maneuver }}</label>
+        <label>Maneuver DC {{ form.maneuver_dc }}</label>
+        <label>Morale {{ form.morale }}</label>
+        <label>Morale DC {{ form.morale_dc }}</label>
+        <br>
+        <label>HP {{ form.hp }}</label>
+        <label>Current HP {{ form.current_hp }}</label>
+        <label>Rout threshold {{ form.rout_threshold }}</label>
+        <br>
+        <label>Melee {{ form.melee }}</label>
+        <label>Ranged {{ form.ranged }}</label>
+        <label>Shots {{ form.shots }}</label>
+      </fieldset>
+      <fieldset>
+        <legend>Gear</legend>
+        <label>Armor {{ form.armor_gear }}</label>
+        <label>Melee {{ form.melee_gear }}</label>
+        <label>Ranged {{ form.ranged_gear }}</label>
+        <label>Healing potions {{ form.healing_potions }} <span class="hint">max {{ army.MAX_HEALING_POTIONS }}</span></label>
+      </fieldset>
+      <p><button type="submit">Save army</button></p>
+    </div>
+    <div class="col-right">
+      <fieldset>
+        <legend>Tactics</legend>
+        <p class="hint">One tactic per line.</p>
+        {{ form.tactics }}
+      </fieldset>
+      <fieldset><legend>Tactical actions</legend>{{ form.tactical_actions }}</fieldset>
+      <fieldset><legend>Current conditions</legend>{{ form.conditions }}</fieldset>
+      <fieldset><legend>Current abilities</legend>{{ form.abilities }}</fieldset>
+    </div>
+  </div>
+</form>
+{% endblock %}

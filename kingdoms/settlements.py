@@ -37,7 +37,6 @@ DETAIL_FIELDS = (
     "magical_streetlamps",
     "paved_streets",
     "sewer_system",
-    "garrisoned_armies",
     "ongoing_events",
 )
 INFRASTRUCTURE = [

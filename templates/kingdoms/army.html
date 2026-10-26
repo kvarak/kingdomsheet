@@ -1,0 +1,44 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ army.name }}{% endblock %}
+{% block heading %}{{ army.name }}{% endblock %}
+{% block toolbar %}
+{% url 'kingdoms:army_edit_start' kingdom.pk settlement.pk army.pk as start_url %}{% url 'kingdoms:army_edit' kingdom.pk settlement.pk army.pk as edit_url %}
+{% include "kingdoms/includes/lock_cog.html" with what="army" %}
+{% endblock %}
+{% block content %}
+<p>Level {{ army.level }} {{ army.army_type|default:"army" }}, garrisoned in <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a> &middot; <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></p>
+
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset class="value-list">
+      <legend>Army</legend>
+      <p><span class="hint">Level</span> <strong>{{ army.level }}</strong> &middot; <span class="hint">Alignment</span> {{ army.alignment|default:"-" }}</p>
+      <p><span class="hint">Army type</span> {{ army.army_type|default:"-" }}</p>
+      <p><span class="hint">Scouting</span> {{ army.scouting|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.scouting_dc }}</p>
+      <p><span class="hint">Recruitment DC</span> {{ army.recruitment_dc }}</p>
+      <p><span class="hint">AC</span> <strong>{{ army.ac }}</strong></p>
+      <p><span class="hint">Maneuver</span> {{ army.maneuver|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.maneuver_dc }}</p>
+      <p><span class="hint">Morale</span> {{ army.morale|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.morale_dc }}</p>
+      <p><span class="hint">HP</span> <strong>{{ army.current_hp }}</strong> / {{ army.hp }} &middot; <span class="hint">Rout threshold</span> {{ army.rout_threshold }}</p>
+      <p><span class="hint">Melee</span> {{ army.melee|default:"-" }}</p>
+      <p><span class="hint">Ranged</span> {{ army.ranged|default:"-" }} &middot; <span class="hint">Shots</span> {{ army.shots }}</p>
+    </fieldset>
+    <fieldset class="value-list">
+      <legend>Gear</legend>
+      <p><span class="hint">Armor</span> {{ army.armor_gear|default:"-" }}</p>
+      <p><span class="hint">Melee</span> {{ army.melee_gear|default:"-" }}</p>
+      <p><span class="hint">Ranged</span> {{ army.ranged_gear|default:"-" }}</p>
+      <p><span class="hint">Healing potions</span> {{ army.healing_potions }} / {{ army.MAX_HEALING_POTIONS }}</p>
+    </fieldset>
+  </div>
+  <div class="col-right">
+    <fieldset>
+      <legend>Tactics</legend>
+      {% if army.tactic_list %}<ol>{% for tactic in army.tactic_list %}<li>{{ tactic }}</li>{% endfor %}</ol>{% else %}<p>-</p>{% endif %}
+    </fieldset>
+    <fieldset><legend>Tactical actions</legend><p>{{ army.tactical_actions|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Current conditions</legend><p>{{ army.conditions|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Current abilities</legend><p>{{ army.abilities|default:"-"|linebreaksbr }}</p></fieldset>
+  </div>
+</div>
+{% endblock %}

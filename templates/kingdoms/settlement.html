@@ -19,7 +19,11 @@
     </fieldset>
     <fieldset>
       <legend>Garrisoned armies</legend>
-      <p>{{ settlement.garrisoned_armies|default:"-"|linebreaksbr }}</p>
+      {% for army in armies %}
+      <p><a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">{{ army.name }}</a> <span class="hint">level {{ army.level }}{% if army.army_type %} {{ army.army_type }}{% endif %}, HP {{ army.current_hp }}/{{ army.hp }}</span></p>
+      {% empty %}
+      <p>None. Add armies in edit mode.</p>
+      {% endfor %}
     </fieldset>
     <fieldset>
       <legend>Ongoing events</legend>

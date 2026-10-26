@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import settlement_views, views
+from . import army_views, settlement_views, views
 
 app_name = "kingdoms"
 
@@ -52,6 +52,32 @@ urlpatterns = [
         "kingdoms/<int:pk>/settlements/<int:spk>/edit/stop/",
         settlement_views.settlement_edit_stop,
         name="settlement_edit_stop",
+    ),
+    path(
+        "kingdoms/<int:pk>/settlements/<int:spk>/armies/new/",
+        settlement_views.army_add,
+        name="army_add",
+    ),
+    path("kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/", army_views.army, name="army"),
+    path(
+        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/delete/",
+        settlement_views.army_delete,
+        name="army_delete",
+    ),
+    path(
+        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/",
+        army_views.army_edit,
+        name="army_edit",
+    ),
+    path(
+        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/start/",
+        army_views.army_edit_start,
+        name="army_edit_start",
+    ),
+    path(
+        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/stop/",
+        army_views.army_edit_stop,
+        name="army_edit_stop",
     ),
     path(
         "kingdoms/<int:pk>/settlements/<int:spk>/buildings/",

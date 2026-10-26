@@ -131,14 +131,7 @@
       <legend>Settlements</legend>
       <div class="settlement-cards">
         {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks %}
-          <div class="settlement-card">
-            <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}" title="Open {{ settlement.name }}">
-              {% include "kingdoms/includes/grid_thumbnail.html" %}
-              <strong>{{ settlement.name }}</strong>
-            </a>
-            <span class="hint">{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</span>
-            
-          </div>
+          {% include "kingdoms/includes/settlement_card.html" %}
         {% endwith %}{% empty %}
         <p>No settlements yet. Add one in edit mode.</p>
         {% endfor %}

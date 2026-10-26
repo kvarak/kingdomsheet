@@ -3,7 +3,7 @@ from django.forms.models import fields_for_model
 
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
-from .models import Kingdom, Placement, Settlement
+from .models import Army, Kingdom, Placement, Settlement
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS
 
 PASSWORD_MIN_LENGTH = 8
@@ -76,6 +76,24 @@ class SettlementForm(forms.Form):
             if self.cleaned_data[f"border_{side}"]
         }
         return values
+
+
+class NewArmyForm(forms.Form):
+    name = forms.CharField(label="Army name", max_length=120)
+
+
+class ArmyForm(forms.ModelForm):
+    """The army sheet. Saved through services.update_army, never with ModelForm.save()."""
+
+    class Meta:
+        model = Army
+        fields = Army.SHEET_FIELDS
+        widgets = {
+            "tactics": forms.Textarea(attrs={"rows": 6}),
+            "tactical_actions": forms.Textarea(attrs={"rows": 4}),
+            "conditions": forms.Textarea(attrs={"rows": 4}),
+            "abilities": forms.Textarea(attrs={"rows": 4}),
+        }
 
 
 class PlacementForm(forms.Form):

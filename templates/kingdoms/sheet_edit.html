@@ -151,17 +151,7 @@
       <legend>Settlements</legend>
       <div class="settlement-cards">
         {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks %}
-          <div class="settlement-card">
-            <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}" title="Open {{ settlement.name }}">
-              {% include "kingdoms/includes/grid_thumbnail.html" %}
-              <strong>{{ settlement.name }}</strong>
-            </a>
-            <span class="hint">{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</span>
-            <form method="post" action="{% url 'kingdoms:settlement_delete' kingdom.pk settlement.pk %}">
-              {% csrf_token %}
-              <button type="submit" title="Delete {{ settlement.name }} and all its buildings">Delete</button>
-            </form>
-          </div>
+          {% include "kingdoms/includes/settlement_card.html" with deletable=True %}
         {% endwith %}{% empty %}
         <p>No settlements yet.</p>
         {% endfor %}

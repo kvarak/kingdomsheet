@@ -146,7 +146,6 @@ class SettlementTests(TestCase):
                 "paved_streets": "on",
                 "border_north": ["water", "bridge"],
                 "border_west": ["wall_stone"],
-                "garrisoned_armies": "Militia",
                 "ongoing_events": "",
             },
         )

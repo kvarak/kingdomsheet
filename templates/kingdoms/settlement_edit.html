@@ -36,7 +36,24 @@
     </fieldset>
     <fieldset>
       <legend>Garrisoned armies</legend>
-      {{ form.garrisoned_armies }}
+      {% for army in armies %}
+      <div>
+        <a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">{{ army.name }}</a>
+        <span class="hint">level {{ army.level }}</span>
+        <form method="post" action="{% url 'kingdoms:army_delete' kingdom.pk settlement.pk army.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" title="Delete {{ army.name }}">Delete</button>
+        </form>
+      </div>
+      {% empty %}
+      <p>None yet.</p>
+      {% endfor %}
+      <form method="post" action="{% url 'kingdoms:army_add' kingdom.pk settlement.pk %}">
+        {% csrf_token %}
+        {{ army_form.non_field_errors }}
+        <label>{{ army_form.name.label }} {{ army_form.name }}</label>{{ army_form.name.errors }}
+        <button type="submit">Add army</button>
+      </form>
     </fieldset>
     <fieldset>
       <legend>Ongoing events</legend>

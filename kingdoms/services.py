@@ -1,7 +1,7 @@
 from django.db import IntegrityError, transaction
 
 from .access import new_access_code
-from .models import HistoryEntry, Kingdom, Placement, Settlement, Statistic
+from .models import Army, HistoryEntry, Kingdom, Placement, Settlement, Statistic
 from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
@@ -92,8 +92,13 @@ def update_settlement(settlement, writer, values):
 def delete_settlement(settlement, writer):
     with transaction.atomic():
         buildings = sorted(building_label(p.building) for p in settlement.placements.all())
+        armies = sorted(army.name for army in settlement.armies.all())
         changes = _deleted(
-            {"type": settlement.get_settlement_type_display(), "buildings": buildings}
+            {
+                "type": settlement.get_settlement_type_display(),
+                "buildings": buildings,
+                "armies": armies,
+            }
         )
         _record_and_touch(
             settlement.kingdom, writer, HistoryEntry.Action.SETTLEMENT_DELETED, changes, settlement
@@ -118,6 +123,32 @@ def remove_building(settlement, writer, placement):
             settlement.kingdom, writer, HistoryEntry.Action.BUILDING_REMOVED, changes, settlement
         )
         placement.delete()
+
+
+def add_army(settlement, writer, name):
+    with transaction.atomic():
+        army = Army.objects.create(settlement=settlement, name=name)
+        changes = _created({"name": name, "settlement": settlement.name})
+        _record_and_touch(settlement.kingdom, writer, HistoryEntry.Action.ARMY_ADDED, changes, army)
+    return army
+
+
+def update_army(army, writer, values):
+    with transaction.atomic():
+        changes = _labelled(_apply_changes(army, Army.SHEET_FIELDS, values))
+        if changes:
+            _record_and_touch(
+                army.settlement.kingdom, writer, HistoryEntry.Action.ARMY_EDITED, changes, army
+            )
+
+
+def delete_army(army, writer):
+    with transaction.atomic():
+        changes = _deleted({"name": army.name, "settlement": army.settlement.name})
+        _record_and_touch(
+            army.settlement.kingdom, writer, HistoryEntry.Action.ARMY_DELETED, changes, army
+        )
+        army.delete()
 
 
 def _where(placement):

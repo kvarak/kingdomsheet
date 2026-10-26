@@ -2,6 +2,7 @@
 settlements can be edited at the same time by different players. Adding and deleting
 settlements happens in kingdom edit mode, in views.py."""
 
+from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -11,13 +12,14 @@ from .access import get_remembered_kingdom_or_404
 from .editing import (
     holds_lock,
     lock_context,
+    locked_by_other,
     release_lock,
     settlement_edit_url,
     settlement_url,
     take_lock,
 )
-from .forms import PlacementForm, SettlementForm
-from .models import Placement, Settlement
+from .forms import NewArmyForm, PlacementForm, SettlementForm
+from .models import Army, Placement, Settlement
 from .names import current_writer
 from .sheet import error_messages
 
@@ -36,6 +38,7 @@ def _context(request, settlement, *, form=None, selected=None):
         "blocks": grid.build_grid(settlement, selected),
         "border_sides": grid.border_sides(settlement, form),
         "infrastructure": grid.infrastructure_labels(settlement),
+        "armies": settlement.armies.all(),
         "block_image": grid.BLOCK_IMAGE,
         **lock_context(settlement, writer),
     }
@@ -49,7 +52,9 @@ def _selected_lot(placement_form):
         return None
 
 
-def _render_edit(request, settlement, *, form=None, placement_form=None, status=200):
+def _render_edit(
+    request, settlement, *, form=None, placement_form=None, army_form=None, status=200
+):
     form = form or SettlementForm(initial=SettlementForm.initial_for(settlement))
     if placement_form is None:
         initial = {"rotation": 0}
@@ -63,6 +68,7 @@ def _render_edit(request, settlement, *, form=None, placement_form=None, status=
             "form": form,
             "form_errors": error_messages(form) if form.is_bound else [],
             "placement_form": placement_form,
+            "army_form": army_form or NewArmyForm(),
             "catalog": grid.catalog_by_size(),
         }
     )
@@ -128,4 +134,32 @@ def building_remove(request, pk, spk, ppk):
         return refused
     placement = get_object_or_404(Placement, pk=ppk, settlement=settlement)
     services.remove_building(settlement, writer, placement)
+    return redirect(settlement_edit_url(settlement))
+
+
+@require_POST
+def army_add(request, pk, spk):
+    settlement = _get_settlement(request, pk, spk)
+    writer, refused = take_lock(request, settlement, settlement_url(settlement))
+    if refused:
+        return refused
+    form = NewArmyForm(request.POST)
+    if not form.is_valid():
+        return _render_edit(request, settlement, army_form=form, status=400)
+    services.add_army(settlement, writer, form.cleaned_data["name"])
+    return redirect(settlement_edit_url(settlement))
+
+
+@require_POST
+def army_delete(request, pk, spk, apk):
+    settlement = _get_settlement(request, pk, spk)
+    army = get_object_or_404(Army, pk=apk, settlement=settlement)
+    writer, refused = take_lock(request, settlement, settlement_url(settlement))
+    if refused:
+        return refused
+    busy = locked_by_other([army], writer)
+    if busy:
+        messages.error(request, f"{busy[1]} is editing {army}, so it cannot be deleted now.")
+    else:
+        services.delete_army(army, writer)
     return redirect(settlement_edit_url(settlement))

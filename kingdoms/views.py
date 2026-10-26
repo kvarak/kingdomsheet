@@ -18,6 +18,7 @@ from .editing import (
     kingdom_edit_url,
     kingdom_url,
     lock_context,
+    locked_by_other,
     names_redirect,
     release_lock,
     take_lock,
@@ -75,7 +76,7 @@ def _sheet_context(request, kingdom, sheet_form):
         "sheet": build_sheet(kingdom, sheet_form),
         "settlements": [
             {"settlement": settlement, "blocks": grid.build_grid(settlement)}
-            for settlement in kingdom.settlement_set.prefetch_related("placements")
+            for settlement in kingdom.settlement_set.prefetch_related("placements", "armies")
         ],
         "block_image": grid.BLOCK_IMAGE,
         **lock_context(kingdom, writer),
@@ -253,9 +254,12 @@ def settlement_delete(request, pk, spk):
     writer, refused = _take_kingdom_lock(request, kingdom)
     if refused:
         return refused
-    editor = locks.active_editor(settlement)
-    if editor is not None and editor.pk != writer.player_id:
-        messages.error(request, f"{editor} is editing {settlement}, so it cannot be deleted now.")
+    busy = locked_by_other([settlement, *settlement.armies.all()], writer)
+    if busy:
+        thing, editor = busy
+        messages.error(
+            request, f"{editor} is editing {thing}, so {settlement} cannot be deleted now."
+        )
     else:
         services.delete_settlement(settlement, writer)
     return redirect(kingdom_edit_url(pk))

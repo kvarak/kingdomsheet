@@ -1,10 +1,23 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
 from . import pf2e
 
 
-class Kingdom(models.Model):
+class EditLock(models.Model):
+    """Fields for the one-editor-at-a-time lock. See kingdoms.locks."""
+
+    editor = models.ForeignKey(
+        "PlayerName", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    editor_expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class Kingdom(EditLock):
     class Renown(models.TextChoices):
         FAME = "fame", "Fame"
         INFAMY = "infamy", "Infamy"
@@ -43,12 +56,6 @@ class Kingdom(models.Model):
     quarries = models.IntegerField(default=0)
     trade_agreements = models.IntegerField(default=0)
     event_check_dc = models.IntegerField(default=0)
-
-    # Edit lock: only one protected name may edit at a time. See kingdoms.locks.
-    editor = models.ForeignKey(
-        "PlayerName", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    editor_expires_at = models.DateTimeField(null=True, blank=True)
 
     feats = models.TextField(blank=True)
     kingdom_abilities = models.TextField(blank=True)
@@ -141,7 +148,7 @@ class KingdomCommodity(models.Model):
         return self.get_commodity_display()
 
 
-class Settlement(models.Model):
+class Settlement(EditLock):
     """One settlement and its urban grid, following the PF2e urban grid sheet."""
 
     class Type(models.TextChoices):
@@ -165,21 +172,91 @@ class Settlement(models.Model):
     sewer_system = models.BooleanField(default=False)
     # Border features per side, for example {"north": ["water", "bridge"]}.
     borders = models.JSONField(default=dict, blank=True)
-    garrisoned_armies = models.TextField(blank=True)
     ongoing_events = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # Edit lock, separate from the kingdom's. See kingdoms.locks.
-    editor = models.ForeignKey(
-        "PlayerName", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    editor_expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["name", "id"]
 
     def __str__(self):
         return self.name
+
+
+class Army(EditLock):
+    """One army, garrisoned in a settlement, following the PF2e army sheet."""
+
+    MAX_HEALING_POTIONS = 3
+    # Fields edited on the army sheet, in sheet order.
+    SHEET_FIELDS = (
+        "name",
+        "level",
+        "alignment",
+        "army_type",
+        "scouting",
+        "scouting_dc",
+        "recruitment_dc",
+        "ac",
+        "maneuver",
+        "maneuver_dc",
+        "morale",
+        "morale_dc",
+        "hp",
+        "current_hp",
+        "rout_threshold",
+        "melee",
+        "ranged",
+        "shots",
+        "tactics",
+        "tactical_actions",
+        "conditions",
+        "abilities",
+        "armor_gear",
+        "melee_gear",
+        "ranged_gear",
+        "healing_potions",
+    )
+
+    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name="armies")
+    name = models.CharField(max_length=120)
+    level = models.IntegerField(default=1)
+    alignment = models.CharField(max_length=30, blank=True)
+    army_type = models.CharField("army type", max_length=80, blank=True)
+    scouting = models.IntegerField(default=0)
+    scouting_dc = models.IntegerField("scouting DC", default=0)
+    recruitment_dc = models.IntegerField("recruitment DC", default=0)
+    ac = models.IntegerField("AC", default=0)
+    maneuver = models.IntegerField(default=0)
+    maneuver_dc = models.IntegerField("maneuver DC", default=0)
+    morale = models.IntegerField(default=0)
+    morale_dc = models.IntegerField("morale DC", default=0)
+    hp = models.IntegerField("HP", default=0)
+    current_hp = models.IntegerField("current HP", default=0)
+    rout_threshold = models.IntegerField(default=0)
+    melee = models.CharField(max_length=120, blank=True)
+    ranged = models.CharField(max_length=120, blank=True)
+    shots = models.IntegerField(default=0)
+    tactics = models.TextField(blank=True, help_text="One tactic per line.")
+    tactical_actions = models.TextField(blank=True)
+    conditions = models.TextField("current conditions", blank=True)
+    abilities = models.TextField("current abilities", blank=True)
+    armor_gear = models.CharField("armor", max_length=120, blank=True)
+    melee_gear = models.CharField("melee gear", max_length=120, blank=True)
+    ranged_gear = models.CharField("ranged gear", max_length=120, blank=True)
+    healing_potions = models.IntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(MAX_HEALING_POTIONS)]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+        verbose_name_plural = "armies"
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def tactic_list(self):
+        return [line.strip() for line in self.tactics.splitlines() if line.strip()]
 
 
 class Placement(models.Model):
@@ -246,12 +323,15 @@ class HistoryEntry(models.Model):
         SETTLEMENT_DELETED = "settlement_deleted", "Settlement deleted"
         BUILDING_PLACED = "building_placed", "Building placed"
         BUILDING_REMOVED = "building_removed", "Building removed"
+        ARMY_ADDED = "army_added", "Army added"
+        ARMY_EDITED = "army_edited", "Army edited"
+        ARMY_DELETED = "army_deleted", "Army deleted"
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.PROTECT, related_name="history")
     action = models.CharField(max_length=32, choices=Action.choices)
     display_name = models.CharField(max_length=40)
     name_verified = models.BooleanField()
-    # What the entry is about besides the kingdom itself: a statistic or a settlement.
+    # What the entry is about besides the kingdom itself: a statistic, settlement or army.
     subject_id = models.PositiveBigIntegerField(null=True, blank=True)
     subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)

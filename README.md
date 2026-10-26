@@ -106,12 +106,19 @@ Access codes in request paths are redacted from the gunicorn logs.
 
 ## Settlements
 
-Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, border features on each side (water, bridge, wooden or stone wall), type, level, consumption, overcrowding, max item bonus, influence, infrastructure, garrisoned armies and ongoing events. These values are typed in by hand.
+Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, border features on each side (water, bridge, wooden or stone wall), type, level, consumption, overcrowding, max item bonus, influence, infrastructure and ongoing events. These values are typed in by hand.
 
 - Add or delete settlements from the kingdom sheet in edit mode. A settlement that someone else is editing cannot be deleted.
 - Editing a settlement uses its own cogwheel and lock, separate from the kingdom's, so one player can edit the kingdom while another edits a settlement.
 - In settlement edit mode, click a + on the grid, pick a building and a rotation, then place it. Overlapping buildings are refused.
 - Building images live in `static/img/<lots>/<name>.png`, where `<lots>` is how many lots the building covers (1, 2 or 4). Add a PNG there and it appears in the picker after a rebuild. `static/img/settlement-base.png` is the empty block.
+
+## Armies
+
+Armies are garrisoned in settlements, the way settlements belong to kingdoms. Each army has its own page following the PF2e army sheet: level, alignment, type, scouting, recruitment DC, AC, maneuver, morale, HP, rout threshold, melee, ranged, shots, tactics, tactical actions, conditions, abilities, gear and healing potions (max 3). All values are typed in by hand.
+
+- Add or delete armies from the settlement page in settlement edit mode. An army that someone else is editing cannot be deleted, and neither can its settlement.
+- Editing an army uses its own cogwheel and lock, separate from the settlement's and the kingdom's.
 
 ## Viewing and editing
 

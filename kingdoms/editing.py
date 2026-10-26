@@ -26,6 +26,16 @@ def settlement_edit_url(settlement):
     return reverse("kingdoms:settlement_edit", args=[settlement.kingdom_id, settlement.pk])
 
 
+def army_url(army):
+    settlement = army.settlement
+    return reverse("kingdoms:army", args=[settlement.kingdom_id, settlement.pk, army.pk])
+
+
+def army_edit_url(army):
+    settlement = army.settlement
+    return reverse("kingdoms:army_edit", args=[settlement.kingdom_id, settlement.pk, army.pk])
+
+
 def names_redirect(next_url):
     return redirect(f"{reverse('kingdoms:names')}?{urlencode({'next': next_url})}")
 
@@ -57,6 +67,15 @@ def take_lock(request, instance, view_url):
         )
         return None, redirect(view_url)
     return writer, None
+
+
+def locked_by_other(instances, writer):
+    """The first of these objects someone other than `writer` is editing, or None."""
+    for instance in instances:
+        editor = locks.active_editor(instance)
+        if editor is not None and editor.pk != writer.player_id:
+            return instance, editor
+    return None
 
 
 def holds_lock(request, instance):
