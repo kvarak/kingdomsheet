@@ -74,6 +74,7 @@ PROFICIENCY_RANKS = [
     (3, "Master"),
     (4, "Legendary"),
 ]
+RANK_LABELS = dict(PROFICIENCY_RANKS)
 
 
 def ability_modifier(score):

@@ -15,6 +15,7 @@ BLOCK_IMAGE = "img/settlement-base.png"
 BUILDING_SIZES = (1, 2, 4)
 BLOCKS = range(9)
 LOTS = range(4)
+LOT_NAMES = ("Top left", "Top right", "Bottom left", "Bottom right")
 ROTATIONS = (0, 90, 180, 270)
 SIDES = [("north", "North"), ("east", "East"), ("south", "South"), ("west", "West")]
 BORDER_FEATURES = [
@@ -22,6 +23,27 @@ BORDER_FEATURES = [
     ("bridge", "Bridge"),
     ("wall_wood", "Wall (wood)"),
     ("wall_stone", "Wall (stone)"),
+]
+
+# Settlement fields edited on the sheet, besides the borders.
+DETAIL_FIELDS = (
+    "name",
+    "settlement_type",
+    "level",
+    "consumption",
+    "overcrowded",
+    "max_item_bonus",
+    "influence",
+    "magical_streetlamps",
+    "paved_streets",
+    "sewer_system",
+    "garrisoned_armies",
+    "ongoing_events",
+)
+INFRASTRUCTURE = [
+    ("magical_streetlamps", "Magical streetlamps"),
+    ("paved_streets", "Paved streets"),
+    ("sewer_system", "Sewer system"),
 ]
 
 
@@ -47,6 +69,12 @@ def catalog():
     return buildings
 
 
+def building_label(key):
+    """The building's name, or its raw key if the image has since been removed."""
+    building = catalog().get(key)
+    return building.label if building else key
+
+
 def catalog_by_size():
     """[(lots, [buildings sorted by label])] for the building picker."""
     buildings = catalog().values()
@@ -56,9 +84,14 @@ def catalog_by_size():
     ]
 
 
+def lot_cell(lot):
+    """(column, row) of a lot inside its block, counted from 0."""
+    return lot % 2, lot // 2
+
+
 def covered_lots(lots, lot, rotation):
     """Return the lots a building covers, or None if it does not fit from that lot."""
-    column, row = lot % 2, lot // 2
+    column, row = lot_cell(lot)
     if lots == 1:
         return {lot}
     if lots == 4:
@@ -68,20 +101,23 @@ def covered_lots(lots, lot, rotation):
     return {lot, lot + 2} if row == 0 else None
 
 
-def blocked_lots(placements, block, ignore=None):
+def blocked_lots(placements, block):
     """Map each taken lot in a block to the placement covering it."""
     taken = {}
     for placement in placements:
         building = catalog().get(placement.building)
-        if placement.block != block or placement == ignore or building is None:
+        if placement.block != block or building is None:
             continue
         for lot in covered_lots(building.lots, placement.lot, placement.rotation) or ():
             taken[lot] = placement
     return taken
 
 
-def build_grid(settlement):
-    """Return the 9 blocks with their buildings and free lots, ready for the template."""
+def build_grid(settlement, selected=None):
+    """Return the 9 blocks with their buildings and free lots, ready for the template.
+
+    `selected` is an optional (block, lot) pair to highlight in edit mode.
+    """
     placements = list(settlement.placements.all())
     blocks = []
     for block in BLOCKS:
@@ -91,12 +127,13 @@ def build_grid(settlement):
             if placement.block != block or building is None:
                 continue
             vertical = building.lots == 2 and placement.rotation in (90, 270)
+            column, row = lot_cell(placement.lot)
             items.append(
                 {
                     "placement": placement,
                     "building": building,
-                    "column": placement.lot % 2 + 1,
-                    "row": placement.lot // 2 + 1,
+                    "column": column + 1,
+                    "row": row + 1,
                     "column_span": 2
                     if building.lots == 4 or (building.lots == 2 and not vertical)
                     else 1,
@@ -106,7 +143,12 @@ def build_grid(settlement):
                 }
             )
         free = [
-            {"lot": lot, "column": lot % 2 + 1, "row": lot // 2 + 1}
+            {
+                "lot": lot,
+                "column": lot_cell(lot)[0] + 1,
+                "row": lot_cell(lot)[1] + 1,
+                "selected": (block, lot) == selected,
+            }
             for lot in LOTS
             if lot not in taken
         ]
@@ -114,10 +156,18 @@ def build_grid(settlement):
     return blocks
 
 
-def border_labels(settlement):
-    """{side: "Water, Bridge"} for the read-only sheet."""
+def border_sides(settlement, form=None):
+    """One entry per side of the grid: its form field when editing, otherwise its features."""
     labels = dict(BORDER_FEATURES)
-    return {
-        side: ", ".join(labels[f] for f in settlement.borders.get(side, []) if f in labels)
+    return [
+        {
+            "key": side,
+            "field": form[f"border_{side}"] if form is not None else None,
+            "text": ", ".join(labels[f] for f in settlement.borders.get(side, []) if f in labels),
+        }
         for side, _ in SIDES
-    }
+    ]
+
+
+def infrastructure_labels(settlement):
+    return [label for field, label in INFRASTRUCTURE if getattr(settlement, field)]

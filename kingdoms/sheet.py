@@ -168,7 +168,7 @@ def _skill_rows(kingdom, form, scores):
                 "ability": pf2e.ABILITY_LABELS[ability],
                 "ability_modifier": pf2e.ability_modifier(scores[ability]),
                 "proficiency": pf2e.proficiency_bonus(skill.rank, kingdom.level),
-                "rank_label": dict(pf2e.PROFICIENCY_RANKS)[skill.rank],
+                "rank_label": pf2e.RANK_LABELS[skill.rank],
                 "total": pf2e.skill_total(
                     ability_score=scores[ability],
                     rank=skill.rank,

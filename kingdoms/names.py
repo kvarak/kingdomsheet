@@ -17,7 +17,7 @@ class NameSelectionError(Exception):
 class Writer:
     display_name: str
     verified: bool
-    player_id: int | None = None
+    player_id: int
 
 
 def clean_display_name(raw):

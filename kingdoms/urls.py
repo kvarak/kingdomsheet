@@ -25,7 +25,7 @@ urlpatterns = [
     path("kingdoms/<int:pk>/history/", views.history, name="history"),
     path(
         "kingdoms/<int:pk>/settlements/new/",
-        settlement_views.settlement_add,
+        views.settlement_add,
         name="settlement_add",
     ),
     path(
@@ -35,7 +35,7 @@ urlpatterns = [
     ),
     path(
         "kingdoms/<int:pk>/settlements/<int:spk>/delete/",
-        settlement_views.settlement_delete,
+        views.settlement_delete,
         name="settlement_delete",
     ),
     path(

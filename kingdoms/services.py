@@ -2,7 +2,7 @@ from django.db import IntegrityError, transaction
 
 from .access import new_access_code
 from .models import HistoryEntry, Kingdom, Placement, Settlement, Statistic
-from .settlements import catalog
+from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
 STATISTIC_FIELDS = ("label", "value", "display_order")
@@ -34,8 +34,7 @@ def update_sheet(kingdom, writer, values):
                 row_values = {field: values[group.field_name(key, field)] for field in group.fields}
                 changes.update(_labelled(_apply_changes(row, group.fields, row_values), row))
         if changes:
-            kingdom.save(update_fields=["updated_at"])
-            _record(kingdom, writer, HistoryEntry.Action.KINGDOM_EDITED, changes)
+            _record_and_touch(kingdom, writer, HistoryEntry.Action.KINGDOM_EDITED, changes)
 
 
 def add_statistic(kingdom, writer, values):
@@ -65,21 +64,7 @@ def delete_statistic(kingdom, writer, statistic):
         statistic.delete()
 
 
-SETTLEMENT_FIELDS = (
-    "name",
-    "settlement_type",
-    "level",
-    "consumption",
-    "overcrowded",
-    "max_item_bonus",
-    "influence",
-    "magical_streetlamps",
-    "paved_streets",
-    "sewer_system",
-    "borders",
-    "garrisoned_armies",
-    "ongoing_events",
-)
+SETTLEMENT_FIELDS = (*DETAIL_FIELDS, "borders")
 
 
 def add_settlement(kingdom, writer, values):
@@ -106,11 +91,7 @@ def update_settlement(settlement, writer, values):
 
 def delete_settlement(settlement, writer):
     with transaction.atomic():
-        buildings = sorted(
-            catalog()[p.building].label
-            for p in settlement.placements.all()
-            if p.building in catalog()
-        )
+        buildings = sorted(building_label(p.building) for p in settlement.placements.all())
         changes = _deleted(
             {"type": settlement.get_settlement_type_display(), "buildings": buildings}
         )
@@ -123,7 +104,7 @@ def delete_settlement(settlement, writer):
 def place_building(settlement, writer, values):
     with transaction.atomic():
         placement = Placement.objects.create(settlement=settlement, **values)
-        changes = _created({"building": catalog()[placement.building].label, **_where(placement)})
+        changes = _created({"building": building_label(placement.building), **_where(placement)})
         _record_and_touch(
             settlement.kingdom, writer, HistoryEntry.Action.BUILDING_PLACED, changes, settlement
         )
@@ -132,9 +113,7 @@ def place_building(settlement, writer, values):
 
 def remove_building(settlement, writer, placement):
     with transaction.atomic():
-        building = catalog().get(placement.building)
-        label = building.label if building else placement.building
-        changes = _deleted({"building": label, **_where(placement)})
+        changes = _deleted({"building": building_label(placement.building), **_where(placement)})
         _record_and_touch(
             settlement.kingdom, writer, HistoryEntry.Action.BUILDING_REMOVED, changes, settlement
         )
@@ -142,17 +121,16 @@ def remove_building(settlement, writer, placement):
 
 
 def _where(placement):
-    lot_names = ("top left", "top right", "bottom left", "bottom right")
-    return {"block": placement.block + 1, "lot": lot_names[placement.lot]}
+    return {"block": placement.block + 1, "lot": LOT_NAMES[placement.lot].lower()}
 
 
-def _apply_changes(instance, fields, values, extra_fields=()):
+def _apply_changes(instance, fields, values):
     """Copy changed values onto the instance and save them. Returns the diff, empty if none."""
     changes = _diff(field_values(instance, fields), values)
     if changes:
         for field in changes:
             setattr(instance, field, values[field])
-        instance.save(update_fields=[*changes, *extra_fields])
+        instance.save(update_fields=list(changes))
     return changes
 
 
@@ -162,9 +140,9 @@ def _labelled(changes, row=None):
     return {f"{prefix}{field.replace('_', ' ')}": diff for field, diff in changes.items()}
 
 
-def _record_and_touch(kingdom, writer, action, changes, subject):
+def _record_and_touch(kingdom, writer, action, changes, subject=None):
     _record(kingdom, writer, action, changes, subject)
-    # Statistic and settlement changes move the kingdom up the "Your kingdoms" list.
+    # Any change to the sheet, its statistics or settlements moves it up "Your kingdoms".
     kingdom.save(update_fields=["updated_at"])
 
 

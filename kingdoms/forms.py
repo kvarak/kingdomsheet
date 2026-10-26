@@ -9,7 +9,13 @@ from .sheet import KINGDOM_FIELDS, ROW_GROUPS
 PASSWORD_MIN_LENGTH = 8
 
 
-class KingdomForm(forms.Form):
+def _join_form(form):
+    """Point every input at the page's <form id>, so inputs can sit anywhere in the layout."""
+    for field in form.fields.values():
+        field.widget.attrs["form"] = form.FORM_ID
+
+
+class NewKingdomForm(forms.Form):
     name = forms.CharField(max_length=120)
     description = forms.CharField(widget=forms.Textarea, required=False)
     notes = forms.CharField(widget=forms.Textarea, required=False)
@@ -28,9 +34,7 @@ class SheetForm(forms.Form):
                 # Each call returns fresh field objects, so rows never share widgets.
                 for name, field in fields_for_model(group.model, fields=group.fields).items():
                     self.fields[group.field_name(key, name)] = field
-        for field in self.fields.values():
-            # Inputs are spread across the page and join the sheet form through this attribute.
-            field.widget.attrs["form"] = self.FORM_ID
+        _join_form(self)
 
 
 class NewSettlementForm(forms.Form):
@@ -42,20 +46,7 @@ class SettlementForm(forms.Form):
     """Everything on the urban grid sheet except the buildings."""
 
     FORM_ID = "settlement-form"
-    MODEL_FIELDS = (
-        "name",
-        "settlement_type",
-        "level",
-        "consumption",
-        "overcrowded",
-        "max_item_bonus",
-        "influence",
-        "magical_streetlamps",
-        "paved_streets",
-        "sewer_system",
-        "garrisoned_armies",
-        "ongoing_events",
-    )
+    MODEL_FIELDS = grid.DETAIL_FIELDS
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,8 +58,7 @@ class SettlementForm(forms.Form):
                 required=False,
                 widget=forms.CheckboxSelectMultiple,
             )
-        for field in self.fields.values():
-            field.widget.attrs["form"] = self.FORM_ID
+        _join_form(self)
 
     @classmethod
     def initial_for(cls, settlement):
@@ -91,10 +81,7 @@ class SettlementForm(forms.Form):
 class PlacementForm(forms.Form):
     building = forms.ChoiceField(widget=forms.RadioSelect)
     block = forms.TypedChoiceField(coerce=int, choices=[(b, f"Block {b + 1}") for b in grid.BLOCKS])
-    lot = forms.TypedChoiceField(
-        coerce=int,
-        choices=[(0, "Top left"), (1, "Top right"), (2, "Bottom left"), (3, "Bottom right")],
-    )
+    lot = forms.TypedChoiceField(coerce=int, choices=list(enumerate(grid.LOT_NAMES)))
     rotation = forms.TypedChoiceField(
         coerce=int, choices=[(r, f"{r} degrees") for r in grid.ROTATIONS], initial=0
     )
@@ -115,9 +102,7 @@ class PlacementForm(forms.Form):
         taken = grid.blocked_lots(
             Placement.objects.filter(settlement=self.settlement), data["block"]
         )
-        clashes = sorted(
-            {grid.catalog()[taken[lot].building].label for lot in lots if lot in taken}
-        )
+        clashes = sorted({grid.building_label(taken[lot].building) for lot in lots if lot in taken})
         if clashes:
             raise forms.ValidationError(
                 f"{building.label} would overlap {', '.join(clashes)}. Pick a free spot."
@@ -153,7 +138,6 @@ class SelectNameForm(forms.Form):
         widget=forms.PasswordInput(render_value=False),
         required=False,
         min_length=PASSWORD_MIN_LENGTH,
-        help_text="",
     )
 
 

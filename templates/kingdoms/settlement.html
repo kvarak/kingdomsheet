@@ -15,11 +15,7 @@
       <p><span class="hint">Type</span> {{ settlement.get_settlement_type_display }}{% if settlement.overcrowded %} <strong class="error">(overcrowded)</strong>{% endif %}</p>
       <p><span class="hint">Level</span> <strong>{{ settlement.level }}</strong> &middot; <span class="hint">Consumption</span> {{ settlement.consumption }}</p>
       <p><span class="hint">Max. item bonus</span> {{ settlement.max_item_bonus }} &middot; <span class="hint">Influence</span> {{ settlement.influence }} hexes</p>
-      <p><span class="hint">Infrastructure</span>
-        {% if settlement.magical_streetlamps or settlement.paved_streets or settlement.sewer_system %}
-          {% if settlement.magical_streetlamps %}Magical streetlamps{% endif %}{% if settlement.magical_streetlamps and settlement.paved_streets or settlement.magical_streetlamps and settlement.sewer_system %}, {% endif %}{% if settlement.paved_streets %}Paved streets{% endif %}{% if settlement.paved_streets and settlement.sewer_system %}, {% endif %}{% if settlement.sewer_system %}Sewer system{% endif %}
-        {% else %}none{% endif %}
-      </p>
+      <p><span class="hint">Infrastructure</span> {{ infrastructure|join:", "|default:"none" }}</p>
     </fieldset>
     <fieldset>
       <legend>Garrisoned armies</legend>

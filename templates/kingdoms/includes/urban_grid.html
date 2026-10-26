@@ -4,13 +4,9 @@ With `editing`, free lots link to the placement form and buildings get a remove 
 {% endcomment %}
 {% load static %}
 <div class="urban-grid">
-  {% for side, label in sides %}
-  <div class="grid-border grid-border-{{ side }}">
-    {% if editing %}
-      {% for field_side, field in border_fields.items %}{% if field_side == side %}{{ field }}{% endif %}{% endfor %}
-    {% else %}
-      {% for border_side, text in borders.items %}{% if border_side == side and text %}<span class="hint">{{ text }}</span>{% endif %}{% endfor %}
-    {% endif %}
+  {% for side in border_sides %}
+  <div class="grid-border grid-border-{{ side.key }}">
+    {% if editing %}{{ side.field }}{% elif side.text %}<span class="hint">{{ side.text }}</span>{% endif %}
   </div>
   {% endfor %}
   <div class="blocks">
