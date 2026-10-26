@@ -40,6 +40,14 @@ class EditLockTests(TestCase):
         self.assertContains(response, 'name="level"')
         self.assertContains(response, 'id="lock-timer"')
 
+    def test_save_buttons_sit_in_the_top_right_toolbar(self):
+        response = self.client.get(self.edit_url)
+        toolbar = (
+            response.content.decode().split('<div class="toolbar">')[1].split("</div>\n  </div>")[0]
+        )
+        self.assertIn('form="sheet-form">Save sheet</button>', toolbar)
+        self.assertContains(response, ">Save sheet</button>", count=1)
+
     def test_second_player_is_locked_out_while_someone_edits(self):
         response = self.bob.post(self.start_url, follow=True)
         self.assertRedirects(response, self.view_url)

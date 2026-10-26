@@ -103,6 +103,12 @@ class ArmyTests(TestCase):
         self.assertEqual(entry.subject_label, "Tatzlford Militia")
         self.assertEqual(entry.changes["ac"], {"old": 0, "new": 18})
 
+    def test_save_button_sits_in_the_toolbar(self):
+        self.client.post(self.start_url)
+        response = self.client.get(self.edit_url)
+        self.assertContains(response, 'form="army-form">Save army</button>', count=1)
+        self.assertContains(response, '<form id="army-form"')
+
     def test_healing_potions_are_capped(self):
         self.client.post(self.start_url)
         response = self.client.post(self.edit_url, army_post_data(self.army, healing_potions=4))

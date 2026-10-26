@@ -3,7 +3,7 @@
 {% block heading %}{{ kingdom.name }}{% endblock %}
 {% block toolbar %}
 {% url 'kingdoms:edit_start' kingdom.pk as start_url %}{% url 'kingdoms:edit_stop' kingdom.pk as stop_url %}
-{% include "kingdoms/includes/lock_toolbar.html" %}
+{% include "kingdoms/includes/lock_toolbar.html" with save_form=form.FORM_ID save_label="Save sheet" %}
 {% endblock %}
 {% block content %}
 <p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:sheet' kingdom.pk %}">View sheet</a></p>
@@ -49,7 +49,6 @@
   </div>
 </div>
 
-<p><button type="submit" form="{{ form.FORM_ID }}">Save sheet</button></p>
 
 <div class="page-columns">
   <div class="col-left">
@@ -173,8 +172,7 @@
       {{ form.ongoing_events }}
     </fieldset>
 
-    <p><button type="submit" form="{{ form.FORM_ID }}">Save sheet</button></p>
-
+    
 
     <fieldset>
       <legend>Custom statistics</legend>

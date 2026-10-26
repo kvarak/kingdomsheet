@@ -81,6 +81,11 @@ class SettlementTests(TestCase):
         self.assertNotContains(response, 'name="building"')
         self.assertRedirects(self.client.get(self.edit_url), self.view_url)
 
+    def test_save_button_sits_in_the_toolbar(self):
+        self.client.post(self.start_url)
+        response = self.client.get(self.edit_url)
+        self.assertContains(response, 'form="settlement-form">Save settlement</button>', count=1)
+
     def test_place_and_remove_buildings(self):
         self.client.post(self.start_url)
         self.assertRedirects(

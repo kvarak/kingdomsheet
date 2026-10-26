@@ -3,7 +3,7 @@
 {% block heading %}{{ settlement.name }}{% endblock %}
 {% block toolbar %}
 {% url 'kingdoms:settlement_edit_start' kingdom.pk settlement.pk as start_url %}{% url 'kingdoms:settlement_edit_stop' kingdom.pk settlement.pk as stop_url %}
-{% include "kingdoms/includes/lock_toolbar.html" %}
+{% include "kingdoms/includes/lock_toolbar.html" with save_form=form.FORM_ID save_label="Save settlement" %}
 {% endblock %}
 {% block content %}
 <p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">View settlement</a> &middot; <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></p>
@@ -59,7 +59,6 @@
       <legend>Ongoing events</legend>
       {{ form.ongoing_events }}
     </fieldset>
-    <p><button type="submit" form="{{ form.FORM_ID }}">Save settlement</button></p>
   </div>
 
   <div class="col-right">

@@ -1,12 +1,16 @@
-{% comment %}Top-right lock timer on an edit page. Needs start_url, stop_url and lock_context.{% endcomment %}
+{% comment %}
+Top-right lock timer on an edit page. Needs start_url, stop_url and lock_context.
+`save_form` is the id of the page's main form, and `save_label` the text on its Save button.
+{% endcomment %}
 {% load static %}
 <div class="lock-status">
   <span class="hint">Editing. Locked for others for</span>
   <strong id="lock-timer" data-seconds="{{ lock_seconds }}">{{ lock_minutes }} min</strong>
 </div>
 <div class="lock-buttons">
+  {% if save_form %}<button type="submit" form="{{ save_form }}">{{ save_label }}</button>{% endif %}
   <form method="post" action="{{ start_url }}">{% csrf_token %}<button type="submit" title="Reset the timer to 15 minutes">Keep editing</button></form>
   <form method="post" action="{{ stop_url }}">{% csrf_token %}<button type="submit" title="Stop editing and let others edit">Done</button></form>
 </div>
-<p class="hint">Saving resets the timer. Unsaved changes are lost when you press Done.</p>
+<p class="hint">Saving resets the timer. Done does not save, so save first.</p>
 <script src="{% static 'kingdoms/lock-timer.js' %}" defer></script>

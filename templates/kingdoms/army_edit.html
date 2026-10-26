@@ -3,7 +3,7 @@
 {% block heading %}{{ army.name }}{% endblock %}
 {% block toolbar %}
 {% url 'kingdoms:army_edit_start' kingdom.pk settlement.pk army.pk as start_url %}{% url 'kingdoms:army_edit_stop' kingdom.pk settlement.pk army.pk as stop_url %}
-{% include "kingdoms/includes/lock_toolbar.html" %}
+{% include "kingdoms/includes/lock_toolbar.html" with save_form="army-form" save_label="Save army" %}
 {% endblock %}
 {% block content %}
 <p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">View army</a> &middot; <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></p>
@@ -15,7 +15,7 @@
 </div>
 {% endif %}
 
-<form method="post" action="{% url 'kingdoms:army_edit' kingdom.pk settlement.pk army.pk %}">
+<form id="army-form" method="post" action="{% url 'kingdoms:army_edit' kingdom.pk settlement.pk army.pk %}">
   {% csrf_token %}
   <div class="page-columns">
     <div class="col-left">
@@ -51,7 +51,6 @@
         <label>Ranged {{ form.ranged_gear }}</label>
         <label>Healing potions {{ form.healing_potions }} <span class="hint">max {{ army.MAX_HEALING_POTIONS }}</span></label>
       </fieldset>
-      <p><button type="submit">Save army</button></p>
     </div>
     <div class="col-right">
       <fieldset>

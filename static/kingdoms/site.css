@@ -20,6 +20,36 @@ input[type="number"] {
   width: 4.5rem;
 }
 
+/* Every button looks the same. Size tweaks for the cogwheel and the remove cross come later. */
+button {
+  background: #2a5a9c;
+  border: 1px solid #2a5a9c;
+  border-radius: 0.2rem;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: normal;
+  line-height: 1.25;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #21497f;
+  border-color: #21497f;
+}
+
+button:focus-visible {
+  outline: 2px solid #f0a500;
+  outline-offset: 1px;
+}
+
+button:disabled {
+  background: #9aa9bd;
+  border-color: #9aa9bd;
+  cursor: not-allowed;
+}
+
 textarea {
   width: 100%;
   min-height: 4rem;
@@ -144,7 +174,6 @@ td, th {
   font-size: 1.6rem;
   line-height: 1;
   padding: 0.2rem 0.5rem;
-  cursor: pointer;
 }
 
 #lock-timer {
@@ -239,9 +268,8 @@ td, th {
 }
 
 .remove-building {
-  padding: 0 0.3rem;
+  padding: 0 0.35rem;
   line-height: 1.2;
-  cursor: pointer;
 }
 
 .free-lot {
