@@ -6,13 +6,13 @@ from django.urls import reverse
 
 from ..models import HistoryEntry, Kingdom, Statistic
 from ..redaction import RedactAccessCodes
-from .helpers import PLAYER_NAME
+from .helpers import PASSWORD, PLAYER_NAME
 
 ZERO_CODE = "0" * 64
 
 
 class KingdomViewTests(TestCase):
-    def select_name(self, name=PLAYER_NAME, password=""):
+    def select_name(self, name=PLAYER_NAME, password=PASSWORD):
         return self.client.post(
             reverse("kingdoms:names"),
             {"display_name": name, "password": password, "next": reverse("kingdoms:home")},
@@ -245,6 +245,47 @@ class KingdomViewTests(TestCase):
                 "display_order": {"old": 2, "new": None},
             },
         )
+
+    def test_unprotected_name_cannot_edit_kingdom(self):
+        kingdom = self.create_kingdom()
+        member = self.client_class()
+        member.post(reverse("kingdoms:join_link", args=[kingdom.access_code]))
+        member.post(reverse("kingdoms:names"), {"display_name": "Bob", "next": "/"})
+        sheet_url = reverse("kingdoms:sheet", args=[kingdom.pk])
+
+        page = member.get(sheet_url)
+        self.assertContains(page, "(not protected)")
+        self.assertContains(page, "Protect your name")
+
+        writes = [
+            (sheet_url, {"name": "Renamed", "description": "", "notes": ""}),
+            (
+                reverse("kingdoms:statistic_add", args=[kingdom.pk]),
+                {"label": "Gold", "value": 1, "display_order": 0},
+            ),
+        ]
+        for url, data in writes:
+            response = member.post(url, data)
+            self.assertRedirects(
+                response,
+                f"{reverse('kingdoms:names')}?next={sheet_url.replace('/', '%2F')}",
+                fetch_redirect_response=False,
+            )
+        kingdom.refresh_from_db()
+        self.assertEqual(kingdom.name, "Stolen Lands")
+        self.assertFalse(kingdom.statistics.exists())
+
+    def test_protected_name_shows_no_protection_label(self):
+        kingdom = self.create_kingdom()
+        for url in (
+            reverse("kingdoms:home"),
+            reverse("kingdoms:sheet", args=[kingdom.pk]),
+            reverse("kingdoms:history", args=[kingdom.pk]),
+        ):
+            response = self.client.get(url)
+            self.assertNotContains(response, "protected)")
+            self.assertNotContains(response, "Not protected")
+            self.assertNotContains(response, "verified")
 
     def test_member_without_name_is_sent_to_names_page(self):
         kingdom = self.create_kingdom()

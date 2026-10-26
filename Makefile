@@ -1,6 +1,6 @@
 COMPOSE ?= docker compose
 
-.PHONY: serve stop check migrate logs
+.PHONY: serve stop check migrate logs reset-password
 
 # Ctrl+C stops following the logs. The services keep running until `make stop`.
 serve: .env
@@ -19,6 +19,11 @@ migrate: .env
 
 logs: .env
 	$(COMPOSE) logs -f
+
+# Usage: make reset-password NAME="Alice". Prompts for the new password.
+reset-password: .env
+	@test -n "$(NAME)" || (echo 'Usage: make reset-password NAME="Alice"' && exit 1)
+	$(COMPOSE) exec web python manage.py reset_name_password "$(NAME)"
 
 .env:
 	@echo "Missing .env. Run: cp .env.example .env, then edit it." && exit 1

@@ -17,6 +17,7 @@ from .forms import JoinForm, KingdomForm, ProtectForm, SelectNameForm, Statistic
 from .models import Statistic
 from .names import (
     NameSelectionError,
+    current_editor,
     current_writer,
     forget_name,
     normalize_name,
@@ -84,7 +85,7 @@ def home(request):
 
 @require_POST
 def create_kingdom(request):
-    writer = current_writer(request)
+    writer = current_editor(request)
     if writer is None:
         return _names_redirect(reverse("kingdoms:home"))
     form = KingdomForm(request.POST)
@@ -125,7 +126,7 @@ def sheet(request, pk):
     if request.method == "GET":
         return _render_sheet(request, kingdom)
 
-    writer = current_writer(request)
+    writer = current_editor(request)
     if writer is None:
         return _names_redirect(_sheet_url(pk))
     form = KingdomForm(request.POST)
@@ -138,7 +139,7 @@ def sheet(request, pk):
 @require_POST
 def statistic_add(request, pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer = current_writer(request)
+    writer = current_editor(request)
     if writer is None:
         return _names_redirect(_sheet_url(pk))
     form = StatisticForm(request.POST)
@@ -151,7 +152,7 @@ def statistic_add(request, pk):
 @require_POST
 def statistic_edit(request, pk, stat_pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer = current_writer(request)
+    writer = current_editor(request)
     if writer is None:
         return _names_redirect(_sheet_url(pk))
     statistic = get_object_or_404(Statistic, pk=stat_pk, kingdom=kingdom)
@@ -165,7 +166,7 @@ def statistic_edit(request, pk, stat_pk):
 @require_POST
 def statistic_delete(request, pk, stat_pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    writer = current_writer(request)
+    writer = current_editor(request)
     if writer is None:
         return _names_redirect(_sheet_url(pk))
     statistic = get_object_or_404(Statistic, pk=stat_pk, kingdom=kingdom)

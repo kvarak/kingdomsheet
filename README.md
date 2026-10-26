@@ -14,8 +14,8 @@ A small Django app for tracking kingdoms in a Kingmaker-style campaign. Players 
 
 Before you can change anything, pick a display name on the names page.
 
-- An unprotected name is free to use, but anyone can pick it. Its history entries show as `unverified`.
-- You can protect a name with a password (at least 8 characters). Selecting a protected name requires its password. History entries from that name show as `password-verified`.
+- Only password-protected names (password at least 8 characters) can create or edit kingdoms. Selecting a protected name requires its password.
+- An unprotected name can still be selected, but it must be protected before it can edit. Older history entries made by unprotected names are marked `(not protected)`.
 - Names are matched ignoring case and extra spaces.
 - Requests to the names page are rate limited to 5 per 10 minutes per name. The limit is keyed by name, not IP address, because a reverse proxy hides client IPs.
 
@@ -52,6 +52,7 @@ Other targets:
 | `make check` | Run ruff lint and format checks and the test suite inside Docker |
 | `make migrate` | Apply database migrations |
 | `make logs` | Follow service logs |
+| `make reset-password NAME="Alice"` | Set a new password for a player who lost theirs (prompts for it) |
 
 PostgreSQL is not published to the host. Only the web app listens, on `127.0.0.1:8000`. Database data lives in the `db-data` volume.
 
@@ -89,6 +90,18 @@ Production settings to check in `.env`:
 - `DJANGO_DEBUG` stays `0`.
 
 Access codes in request paths are redacted from the gunicorn logs.
+
+## Lost passwords
+
+Passwords cannot be recovered, only replaced by the host. Set a new one, then give it to the player:
+
+```sh
+make reset-password NAME="Alice"
+# Without the Makefile, for example on a server:
+docker compose exec web python manage.py reset_name_password "Alice"
+```
+
+The command prompts for the password twice without echoing it.
 
 ## Layout
 

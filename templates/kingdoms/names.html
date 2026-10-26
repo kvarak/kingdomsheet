@@ -2,7 +2,7 @@
 {% block title %}Name{% endblock %}
 {% block heading %}Name{% endblock %}
 {% block content %}
-<p>Your name is shown in each kingdom's history. Protect it with a password so only you can use it.</p>
+<p>Your name is shown in each kingdom's history. Only password-protected names can create or edit kingdoms.</p>
 {% if rate_limited %}
 <p class="error">Too many attempts for this name. Try again in a few minutes.</p>
 {% endif %}
@@ -13,7 +13,7 @@
       <legend>Current name</legend>
       {% if writer %}
       <p>Current name: <strong>{{ writer.display_name }}</strong></p>
-      <p class="hint">{% if writer.verified %}Protected, password verified.{% else %}Open, not protected.{% endif %}</p>
+      {% if not writer.verified %}<p class="hint">Not protected. Protect it with a password to create or edit kingdoms.</p>{% endif %}
       <form method="post" action="{% url 'kingdoms:forget_name' %}">
         {% csrf_token %}
         <button type="submit">Clear name</button>
@@ -27,7 +27,7 @@
   <div class="col-right">
     <fieldset>
       <legend>Select a name</legend>
-      <p class="hint">Protected names need their password. Anyone can use an open name.</p>
+      <p class="hint">Enter a password to create a new protected name, or the password of your existing name.</p>
       <form method="post" action="{% url 'kingdoms:names' %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next_url }}">

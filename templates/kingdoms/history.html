@@ -13,7 +13,7 @@
       {% for entry in entries %}
       <tr>
         <td>{{ entry.created_at|date:"Y-m-d H:i" }}</td>
-        <td>{{ entry.display_name }} <span class="hint">({{ entry.attribution }})</span></td>
+        <td>{{ entry.display_name }}{% if not entry.name_verified %} <span class="hint">(not protected)</span>{% endif %}</td>
         <td>{{ entry.get_action_display }}</td>
         <td>{{ entry.statistic_label }}</td>
         <td>

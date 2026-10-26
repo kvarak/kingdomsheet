@@ -78,7 +78,3 @@ class HistoryEntry(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} by {self.display_name}"
-
-    @property
-    def attribution(self):
-        return "password-verified" if self.name_verified else "unverified"

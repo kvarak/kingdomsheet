@@ -29,7 +29,7 @@ class SelectNameForm(forms.Form):
         widget=forms.PasswordInput(render_value=False),
         required=False,
         min_length=PASSWORD_MIN_LENGTH,
-        help_text="Leave blank for an open name. Protected names need their password.",
+        help_text="",
     )
 
 

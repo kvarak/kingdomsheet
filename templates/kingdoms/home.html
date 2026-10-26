@@ -9,7 +9,7 @@
       <legend>Name</legend>
       {% if writer %}
       <p>Your name: <strong>{{ writer.display_name }}</strong></p>
-      <p class="hint">{% if writer.verified %}Protected, password verified.{% else %}Open, not protected.{% endif %}</p>
+      {% if not writer.verified %}<p class="hint">Not protected. <a href="{% url 'kingdoms:names' %}">Protect it</a> to create or edit kingdoms.</p>{% endif %}
       <p><a href="{% url 'kingdoms:names' %}">Change name</a></p>
       {% else %}
       <p>No name selected. <a href="{% url 'kingdoms:names' %}">Choose a name</a> before creating or editing kingdoms.</p>

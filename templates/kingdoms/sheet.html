@@ -2,9 +2,10 @@
 {% block title %}{{ kingdom.name }}{% endblock %}
 {% block heading %}{{ kingdom.name }}{% endblock %}
 {% block content %}
-{% if writer %}
-<p>Editing as <strong>{{ writer.display_name }}</strong>
-  <span class="hint">({% if writer.verified %}protected, password verified{% else %}open, not protected{% endif %})</span></p>
+{% if writer.verified %}
+<p>Editing as <strong>{{ writer.display_name }}</strong></p>
+{% elif writer %}
+<p><strong>{{ writer.display_name }}</strong> <span class="hint">(not protected)</span>. <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">Protect your name</a> to edit this kingdom.</p>
 {% else %}
 <p>Choose a name before editing: <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">select a name</a></p>
 {% endif %}

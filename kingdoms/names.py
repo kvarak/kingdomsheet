@@ -77,6 +77,12 @@ def current_writer(request):
     return Writer(display_name=player.display_name, verified=player.is_protected)
 
 
+def current_editor(request):
+    """Return the selected name only if it is password protected. Only protected names may edit."""
+    writer = current_writer(request)
+    return writer if writer is not None and writer.verified else None
+
+
 def forget_name(request):
     request.session.pop(PLAYER_KEY, None)
     request.session.pop(VERIFIED_KEY, None)
