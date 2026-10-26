@@ -129,18 +129,20 @@
     <fieldset><legend>Abilities</legend><p>{{ kingdom.kingdom_abilities|default:"-"|linebreaksbr }}</p></fieldset>
     <fieldset>
       <legend>Settlements</legend>
-      <table>
-        <tbody>
-          {% for settlement in settlements %}
-          <tr>
-            <td><a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></td>
-            <td>{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</td>
-          </tr>
-          {% empty %}
-          <tr><td>No settlements yet. Add one in edit mode.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="settlement-cards">
+        {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks %}
+          <div class="settlement-card">
+            <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}" title="Open {{ settlement.name }}">
+              {% include "kingdoms/includes/grid_thumbnail.html" %}
+              <strong>{{ settlement.name }}</strong>
+            </a>
+            <span class="hint">{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</span>
+            
+          </div>
+        {% endwith %}{% empty %}
+        <p>No settlements yet. Add one in edit mode.</p>
+        {% endfor %}
+      </div>
     </fieldset>
     <fieldset><legend>Relations</legend><p>{{ kingdom.relations|default:"-"|linebreaksbr }}</p></fieldset>
     <fieldset><legend>Ongoing events</legend><p>{{ kingdom.ongoing_events|default:"-"|linebreaksbr }}</p></fieldset>

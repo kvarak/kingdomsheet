@@ -1,0 +1,13 @@
+{% comment %}A small, non-interactive urban grid. Needs blocks and block_image.{% endcomment %}
+{% load static %}
+<div class="blocks grid-thumbnail" aria-hidden="true">
+  {% for block in blocks %}
+  <div class="block" style="background-image: url('{% static block_image %}')">
+    {% for item in block.items %}
+    <div class="building{% if item.vertical %} vertical{% endif %}" style="grid-column: {{ item.column }} / span {{ item.column_span }}; grid-row: {{ item.row }} / span {{ item.row_span }}; --rotation: {{ item.rotation }}deg">
+      <img src="{{ item.building.url }}" alt="" loading="lazy">
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>

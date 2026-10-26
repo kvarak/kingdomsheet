@@ -12,7 +12,7 @@ class GridTests(SimpleTestCase):
         self.assertEqual(catalog["1/inn"].lots, 1)
         self.assertEqual(catalog["2/keep"].lots, 2)
         self.assertEqual(catalog["4/castle"].lots, 4)
-        self.assertEqual(catalog["2/tmple"].label, "Temple")
+        self.assertEqual(catalog["2/temple"].label, "Temple")
         self.assertNotIn("settlement-base", " ".join(catalog))
 
     def test_covered_lots(self):
@@ -105,6 +105,15 @@ class SettlementTests(TestCase):
         self.assertTrue(
             {HistoryEntry.Action.BUILDING_PLACED, HistoryEntry.Action.BUILDING_REMOVED} <= actions
         )
+
+    def test_kingdom_page_shows_grid_thumbnail_per_settlement(self):
+        self.client.post(self.start_url)
+        self.place(self.client, "4/castle", block=4)
+        for url in ("kingdoms:sheet", "kingdoms:edit"):
+            response = self.client.get(reverse(url, args=[self.kingdom.pk]))
+            self.assertContains(response, 'class="blocks grid-thumbnail"', count=1)
+            self.assertContains(response, "img/4/castle.png")
+            self.assertContains(response, self.view_url)
 
     def test_overlapping_or_misfit_buildings_are_refused(self):
         self.client.post(self.start_url)

@@ -8,6 +8,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from django_ratelimit.decorators import ratelimit
 
 from . import locks, services
+from . import settlements as grid
 from .access import (
     find_kingdom_by_code,
     get_remembered_kingdom_or_404,
@@ -104,7 +105,11 @@ def _sheet_context(request, kingdom, sheet_form):
         "writer": current_writer(request),
         "form": sheet_form,
         "sheet": build_sheet(kingdom, sheet_form),
-        "settlements": kingdom.settlement_set.all(),
+        "settlements": [
+            {"settlement": settlement, "blocks": grid.build_grid(settlement)}
+            for settlement in kingdom.settlement_set.prefetch_related("placements")
+        ],
+        "block_image": grid.BLOCK_IMAGE,
         **lock_context(request, kingdom),
     }
 

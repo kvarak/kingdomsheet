@@ -149,24 +149,23 @@
     </fieldset>
     <fieldset>
       <legend>Settlements</legend>
-      <table>
-        <tbody>
-          {% for settlement in settlements %}
-          <tr>
-            <td><a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a></td>
-            <td>{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</td>
-            <td>
-              <form method="post" action="{% url 'kingdoms:settlement_delete' kingdom.pk settlement.pk %}">
-                {% csrf_token %}
-                <button type="submit" title="Delete {{ settlement.name }} and all its buildings">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td>No settlements yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="settlement-cards">
+        {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks %}
+          <div class="settlement-card">
+            <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}" title="Open {{ settlement.name }}">
+              {% include "kingdoms/includes/grid_thumbnail.html" %}
+              <strong>{{ settlement.name }}</strong>
+            </a>
+            <span class="hint">{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</span>
+            <form method="post" action="{% url 'kingdoms:settlement_delete' kingdom.pk settlement.pk %}">
+              {% csrf_token %}
+              <button type="submit" title="Delete {{ settlement.name }} and all its buildings">Delete</button>
+            </form>
+          </div>
+        {% endwith %}{% empty %}
+        <p>No settlements yet.</p>
+        {% endfor %}
+      </div>
       <form method="post" action="{% url 'kingdoms:settlement_add' kingdom.pk %}">
         {% csrf_token %}
         {{ settlement_form.non_field_errors }}

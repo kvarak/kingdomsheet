@@ -291,3 +291,29 @@ td, th {
   outline: 2px solid #2a5a9c;
   border-radius: 0.25rem;
 }
+
+.settlement-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.settlement-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 11rem;
+}
+
+.settlement-card a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.blocks.grid-thumbnail {
+  gap: 0.3rem;
+  padding: 0.3rem;
+  width: 100%;
+  box-sizing: border-box;
+}

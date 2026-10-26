@@ -23,8 +23,6 @@ BORDER_FEATURES = [
     ("wall_wood", "Wall (wood)"),
     ("wall_stone", "Wall (stone)"),
 ]
-# File names that do not read well as labels.
-LABEL_FIXES = {"tmple": "Temple"}
 
 
 @dataclass(frozen=True)
@@ -44,7 +42,7 @@ def catalog():
     buildings = {}
     for lots in BUILDING_SIZES:
         for path in sorted((IMAGE_DIR / str(lots)).glob("*.png")):
-            label = LABEL_FIXES.get(path.stem, path.stem.replace("-", " ").capitalize())
+            label = path.stem.replace("-", " ").capitalize()
             buildings[f"{lots}/{path.stem}"] = Building(f"{lots}/{path.stem}", label, lots)
     return buildings
 
