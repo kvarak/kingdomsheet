@@ -1,0 +1,224 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ kingdom.name }}{% endblock %}
+{% block heading %}{{ kingdom.name }}{% endblock %}
+{% block toolbar %}
+<div class="lock-status">
+  <span class="hint">Editing. Locked for others for</span>
+  <strong id="lock-timer" data-seconds="{{ lock_seconds }}">{{ lock_minutes }} min</strong>
+</div>
+<div class="lock-buttons">
+  <form method="post" action="{% url 'kingdoms:edit_start' kingdom.pk %}">{% csrf_token %}<button type="submit" title="Reset the timer to 15 minutes">Keep editing</button></form>
+  <form method="post" action="{% url 'kingdoms:edit_stop' kingdom.pk %}">{% csrf_token %}<button type="submit" title="Stop editing and let others edit">Done</button></form>
+</div>
+<p class="hint">Saving resets the timer. Unsaved changes are lost when you press Done.</p>
+{% load static %}<script src="{% static 'kingdoms/lock-timer.js' %}" defer></script>
+{% endblock %}
+{% block content %}
+<p>Editing as <strong>{{ writer.display_name }}</strong>. <a href="{% url 'kingdoms:sheet' kingdom.pk %}">View sheet</a></p>
+
+{# Every sheet input joins this form through its form attribute, so the layout is free. #}
+<form id="{{ form.FORM_ID }}" method="post" action="{% url 'kingdoms:edit' kingdom.pk %}">{% csrf_token %}</form>
+
+{% if sheet_errors %}
+<div class="error">
+  <p>The sheet was not saved. Fix these fields:</p>
+  <ul>{% for message in sheet_errors %}<li>{{ message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="page-columns">
+  <div class="col-half">
+    <fieldset>
+      <legend>Kingdom</legend>
+      <div class="sheet-header">
+        <label>Kingdom name {{ form.name }}</label>
+        <label>Charter {{ form.charter }}</label>
+        <label>Heartland {{ form.heartland }}</label>
+        <label>Government {{ form.government }}</label>
+        <label>Capital city {{ form.capital }}</label>
+      </div>
+      <label>Level {{ form.level }}</label>
+      <label>Size {{ form.size }}</label>
+      <label>RP {{ form.resource_points }}</label>
+      <label>XP {{ form.xp }}</label>
+      <label>{{ form.renown }} {{ form.fame }} <span class="hint">max</span> {{ form.fame_max }}</label>
+      <label>Resource dice {{ form.resource_dice }}</label>
+      <label>Bonus dice {{ form.bonus_dice }}</label>
+    </fieldset>
+  </div>
+  <div class="col-half">
+    <fieldset>
+      <legend>Description and notes</legend>
+      <label for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      <label for="{{ form.notes.id_for_label }}">Notes</label>
+      {{ form.notes }}
+    </fieldset>
+  </div>
+</div>
+
+<p><button type="submit" form="{{ form.FORM_ID }}">Save sheet</button></p>
+
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset>
+      <legend>Ability scores</legend>
+      <table>
+        <thead><tr><th>Ability</th><th>Modifier</th><th>Score</th></tr></thead>
+        <tbody>
+          {% for ability in sheet.abilities %}
+          <tr><td>{{ ability.label }}</td><td class="calc">{{ ability.modifier|stringformat:"+d" }}</td><td>{{ ability.score }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> = base {{ form.control_dc_base }} + size {{ form.control_dc_size }}</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ruin</legend>
+      <table>
+        <thead><tr><th>Type</th><th>Score</th><th>Penalty</th><th>Threshold</th></tr></thead>
+        <tbody>
+          {% for ruin in sheet.ruins %}
+          <tr><td>{{ ruin.label }}</td><td>{{ ruin.score }}</td><td>{{ ruin.penalty }}</td><td>{{ ruin.threshold }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <label>Unrest {{ form.unrest }}</label>
+      <label>Penalty {{ form.unrest_penalty }}</label>
+      <label>Consumption {{ form.consumption }}</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Leaders</legend>
+      <table>
+        <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
+        <tbody>
+          {% for leader in sheet.leaders %}
+          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.character }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset>
+      <legend>Commodities</legend>
+      <table>
+        <thead><tr><th>Commodity</th><th>Stored</th><th>Max</th></tr></thead>
+        <tbody>
+          {% for commodity in sheet.commodities %}
+          <tr><td>{{ commodity.label }}</td><td>{{ commodity.stored }}</td><td>{{ commodity.capacity }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset>
+      <legend>Work sites</legend>
+      {% for site in sheet.work_sites %}<label>{{ site.label }} {{ site }}</label>{% endfor %}
+      <label>Trade agreements {{ form.trade_agreements }}</label>
+      <label>Event check DC {{ form.event_check_dc }}</label>
+    </fieldset>
+  </div>
+
+  <div class="col-right">
+    <fieldset>
+      <legend>Skills</legend>
+      <table>
+        <thead>
+          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Status</th><th>Circ.</th><th>Item</th><th>Other</th></tr>
+        </thead>
+        <tbody>
+          {% for skill in sheet.skills %}
+          <tr>
+            <td>{{ skill.label }}</td>
+            <td class="calc">{{ skill.total|stringformat:"+d" }}</td>
+            <td><span class="hint">{{ skill.ability }}</span> {{ skill.ability_modifier|stringformat:"+d" }}</td>
+            <td class="calc">{{ skill.proficiency|stringformat:"+d" }}</td>
+            <td>{{ skill.rank }}</td>
+            <td>{{ skill.status }}</td>
+            <td>{{ skill.circumstance }}</td>
+            <td>{{ skill.item }}</td>
+            <td>{{ skill.other }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="hint">Total = ability modifier + proficiency + status + circumstance + item + other. Proficiency is level + 2, 4, 6 or 8 when trained, expert, master or legendary. Totals update after saving.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Feats</legend>
+      {{ form.feats }}
+    </fieldset>
+    <fieldset>
+      <legend>Abilities</legend>
+      {{ form.kingdom_abilities }}
+    </fieldset>
+    <fieldset>
+      <legend>Settlements</legend>
+      {{ form.settlements }}
+    </fieldset>
+    <fieldset>
+      <legend>Relations</legend>
+      {{ form.relations }}
+    </fieldset>
+    <fieldset>
+      <legend>Ongoing events</legend>
+      {{ form.ongoing_events }}
+    </fieldset>
+
+    <p><button type="submit" form="{{ form.FORM_ID }}">Save sheet</button></p>
+
+    <fieldset>
+      <legend>Sharing</legend>
+      <p class="hint">Sharing ID:</p>
+      <p><code>{{ kingdom.access_code }}</code></p>
+      <p class="hint">Share this link with your group:</p>
+      <p><code>{{ share_url }}</code></p>
+      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Custom statistics</legend>
+      <table>
+        <thead>
+          <tr><th>Label</th><th>Value</th><th>Order</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for statistic, stat in statistic_rows %}
+          <tr>
+            <td><input name="label" value="{{ stat.label.value|default_if_none:'' }}" maxlength="80" required form="stat-{{ statistic.pk }}" aria-label="Label"></td>
+            <td><input type="number" name="value" value="{{ stat.value.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Value"></td>
+            <td><input type="number" name="display_order" value="{{ stat.display_order.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Order"></td>
+            <td>
+              <form id="stat-{{ statistic.pk }}" method="post" action="{% url 'kingdoms:statistic_edit' kingdom.pk statistic.pk %}">
+                {% csrf_token %}
+                <button type="submit">Save</button>
+              </form>
+              <form method="post" action="{% url 'kingdoms:statistic_delete' kingdom.pk statistic.pk %}">
+                {% csrf_token %}
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% if stat.errors %}
+          <tr><td colspan="4">{{ stat.errors }}</td></tr>
+          {% endif %}
+          {% empty %}
+          <tr><td colspan="4">No custom statistics yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <form method="post" action="{% url 'kingdoms:statistic_add' kingdom.pk %}">
+        {% csrf_token %}
+        {{ stat_form.non_field_errors }}
+        {% for field in stat_form %}
+        <label>{{ field.label }} {{ field }}</label>{{ field.errors }}
+        {% endfor %}
+        <button type="submit">Add statistic</button>
+      </form>
+    </fieldset>
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,19 @@
 # Kingdom Sheet
 
-A small Django app for tracking kingdoms in a Kingmaker-style campaign. Players create a kingdom, share its access code, and edit a plain character sheet of numeric statistics. Every change is recorded in a history log.
+A small Django app for tracking kingdoms in a Kingmaker campaign. Players create a kingdom, share its access code and edit its Pathfinder 2e kingdom sheet. Every change is recorded in a history log.
+
+## The sheet
+
+The sheet follows the official PF2e kingdom sheet: kingdom details, ability scores, ruin, unrest, leaders, all 16 skills, feats, abilities, commodities, work sites, settlements, relations and ongoing events. Free-form custom statistics sit below it.
+
+Only these values are calculated, and they update after saving:
+
+- Ability modifier = (score - 10) / 2, rounded down.
+- Proficiency = 0 when untrained, otherwise level + 2, 4, 6 or 8 for trained, expert, master or legendary.
+- Skill total = ability modifier + proficiency + status + circumstance + item + other.
+- Control DC = base + size.
+
+Everything else, such as ruin and unrest penalties, vacancy penalties, storage limits and resource dice, is typed in by hand.
 
 ## How access works
 
@@ -91,6 +104,15 @@ Production settings to check in `.env`:
 
 Access codes in request paths are redacted from the gunicorn logs.
 
+## Viewing and editing
+
+A kingdom opens read-only. The cogwheel in the top right starts editing, which locks the sheet so only one player edits at a time. Others see who is editing and how long the lock lasts.
+
+- The lock ends when the editor presses Done, or after 15 minutes without a save. Saving or pressing Keep editing resets the timer.
+- The editor sees a countdown in the top right. Typing alone does not reset it, so save regularly.
+- If the timer runs out and nobody else has started editing, the editor can still save.
+- Creating a kingdom opens it in edit mode.
+
 ## Lost passwords
 
 Passwords cannot be recovered, only replaced by the host. Set a new one, then give it to the player:
@@ -106,7 +128,7 @@ The command prompts for the password twice without echoing it.
 ## Layout
 
 - `config/`: Django settings and URLs.
-- `kingdoms/`: models, forms, views, and tests.
+- `kingdoms/`: models, forms, views and tests. `pf2e.py` holds the sheet's skills, roles and arithmetic; `sheet.py` maps the sheet onto models and form fields.
 - `templates/kingdoms/`, `static/kingdoms/`: plain HTML and CSS.
 - `Dockerfile`, `docker-compose.yml`, `Makefile`: container and task setup.
 - `requirements.in` and `requirements-dev.in`: dependency sources. The `.txt` files are pinned locks.

@@ -1,81 +1,166 @@
 {% extends "kingdoms/base.html" %}
 {% block title %}{{ kingdom.name }}{% endblock %}
 {% block heading %}{{ kingdom.name }}{% endblock %}
-{% block content %}
-{% if writer.verified %}
-<p>Editing as <strong>{{ writer.display_name }}</strong></p>
-{% elif writer %}
-<p><strong>{{ writer.display_name }}</strong> <span class="hint">(not protected)</span>. <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">Protect your name</a> to edit this kingdom.</p>
+{% block toolbar %}
+{% if editing_is_mine %}
+<a href="{% url 'kingdoms:edit' kingdom.pk %}">Continue editing</a>
+<span class="hint">({{ lock_minutes }} min left)</span>
+{% elif editor %}
+<span>&#128274; {{ editor.display_name }} is editing</span>
+<span class="hint">({{ lock_minutes }} min left)</span>
+<button type="button" class="cog" disabled title="{{ editor.display_name }} is editing">&#9881;</button>
 {% else %}
-<p>Choose a name before editing: <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">select a name</a></p>
+<form method="post" action="{% url 'kingdoms:edit_start' kingdom.pk %}">
+  {% csrf_token %}
+  <button type="submit" class="cog" title="Edit sheet" aria-label="Edit sheet">&#9881;</button>
+</form>
 {% endif %}
+{% endblock %}
+{% block content %}
+{% if writer and not writer.verified %}
+<p><strong>{{ writer.display_name }}</strong> <span class="hint">(not protected)</span>. <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">Protect your name</a> to edit this kingdom.</p>
+{% endif %}
+
+<div class="page-columns">
+  <div class="col-half">
+    <fieldset class="value-list">
+      <legend>Kingdom</legend>
+      <p><span class="hint">Charter</span> {{ kingdom.charter|default:"-" }}</p>
+      <p><span class="hint">Heartland</span> {{ kingdom.heartland|default:"-" }}</p>
+      <p><span class="hint">Government</span> {{ kingdom.government|default:"-" }}</p>
+      <p><span class="hint">Capital city</span> {{ kingdom.capital|default:"-" }}</p>
+      <p>
+        <span class="hint">Level</span> <strong>{{ kingdom.level }}</strong> &middot;
+        <span class="hint">Size</span> {{ kingdom.size }} &middot;
+        <span class="hint">RP</span> {{ kingdom.resource_points }} &middot;
+        <span class="hint">XP</span> {{ kingdom.xp }} &middot;
+        <span class="hint">{{ kingdom.get_renown_display }}</span> {{ kingdom.fame }} / {{ kingdom.fame_max }}
+      </p>
+      <p>
+        <span class="hint">Resource dice</span> {{ kingdom.resource_dice|default:"-" }} &middot;
+        <span class="hint">Bonus dice</span> {{ kingdom.bonus_dice }}
+      </p>
+    </fieldset>
+  </div>
+  <div class="col-half">
+    <fieldset>
+      <legend>Description and notes</legend>
+      <p>{{ kingdom.description|default:"No description."|linebreaksbr }}</p>
+      {% if kingdom.notes %}<p class="hint">Notes</p><p>{{ kingdom.notes|linebreaksbr }}</p>{% endif %}
+    </fieldset>
+  </div>
+</div>
 
 <div class="page-columns">
   <div class="col-left">
     <fieldset>
-      <legend>Details</legend>
-      <form method="post" action="{% url 'kingdoms:sheet' kingdom.pk %}">
-        {% csrf_token %}
-        {{ details_form.as_p }}
-        <button type="submit">Save details</button>
-      </form>
-    </fieldset>
-
-    <fieldset>
-      <legend>Sharing</legend>
-      <p class="hint">Sharing ID:</p>
-      <p><code>{{ kingdom.access_code }}</code></p>
-      <p class="hint">Share this link with your group:</p>
-      <p><code>{{ share_url }}</code></p>
-      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
-    </fieldset>
-  </div>
-
-  <div class="col-right">
-    <fieldset>
-      <legend>Statistics</legend>
+      <legend>Ability scores</legend>
       <table>
-        <thead>
-          <tr><th>Label</th><th>Value</th><th>Order</th><th></th></tr>
-        </thead>
+        <thead><tr><th>Ability</th><th>Modifier</th><th>Score</th></tr></thead>
         <tbody>
-          {% for statistic, form in rows %}
-          {# Inputs sit in separate cells and join their row's form through the form attribute. #}
-          <tr>
-            <td><input name="label" value="{{ form.label.value|default_if_none:'' }}" maxlength="80" required form="stat-{{ statistic.pk }}" aria-label="Label"></td>
-            <td><input type="number" name="value" value="{{ form.value.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Value"></td>
-            <td><input type="number" name="display_order" value="{{ form.display_order.value|default_if_none:'' }}" required form="stat-{{ statistic.pk }}" aria-label="Order"></td>
-            <td>
-              <form id="stat-{{ statistic.pk }}" method="post" action="{% url 'kingdoms:statistic_edit' kingdom.pk statistic.pk %}">
-                {% csrf_token %}
-                <button type="submit">Save</button>
-              </form>
-              <form method="post" action="{% url 'kingdoms:statistic_delete' kingdom.pk statistic.pk %}">
-                {% csrf_token %}
-                <button type="submit">Delete</button>
-              </form>
-            </td>
-          </tr>
-          {% if form.errors %}
-          <tr><td colspan="4">{{ form.errors }}</td></tr>
-          {% endif %}
-          {% empty %}
-          <tr><td colspan="4">No statistics yet.</td></tr>
+          {% for ability in sheet.abilities %}
+          <tr><td>{{ ability.label }}</td><td class="calc">{{ ability.modifier|stringformat:"+d" }}</td><td>{{ ability.score.value }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> <span class="hint">= base {{ kingdom.control_dc_base }} + size {{ kingdom.control_dc_size }}</span></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ruin</legend>
+      <table>
+        <thead><tr><th>Type</th><th>Score</th><th>Penalty</th><th>Threshold</th></tr></thead>
+        <tbody>
+          {% for ruin in sheet.ruins %}
+          <tr><td>{{ ruin.label }}</td><td>{{ ruin.score.value }}</td><td>{{ ruin.penalty.value }}</td><td>{{ ruin.threshold.value }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p><span class="hint">Unrest</span> {{ kingdom.unrest }} &middot; <span class="hint">Penalty</span> {{ kingdom.unrest_penalty }} &middot; <span class="hint">Consumption</span> {{ kingdom.consumption }}</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Leaders</legend>
+      <table>
+        <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
+        <tbody>
+          {% for leader in sheet.leaders %}
+          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{{ leader.character.value|default:"Vacant" }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </fieldset>
 
     <fieldset>
-      <legend>Add a statistic</legend>
-      <form method="post" action="{% url 'kingdoms:statistic_add' kingdom.pk %}">
-        {% csrf_token %}
-        {{ stat_form.non_field_errors }}
-        {% for field in stat_form %}
-        <label>{{ field.label }} {{ field }}</label>{{ field.errors }}
-        {% endfor %}
-        <button type="submit">Add statistic</button>
-      </form>
+      <legend>Commodities</legend>
+      <table>
+        <thead><tr><th>Commodity</th><th>Stored</th><th>Max</th></tr></thead>
+        <tbody>
+          {% for commodity in sheet.commodities %}
+          <tr><td>{{ commodity.label }}</td><td>{{ commodity.stored.value }}</td><td>{{ commodity.capacity.value }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset class="value-list">
+      <legend>Work sites</legend>
+      {% for site in sheet.work_sites %}<p><span class="hint">{{ site.label }}</span> {{ site.value }}</p>{% endfor %}
+      <p><span class="hint">Trade agreements</span> {{ kingdom.trade_agreements }}</p>
+      <p><span class="hint">Event check DC</span> {{ kingdom.event_check_dc }}</p>
+    </fieldset>
+  </div>
+
+  <div class="col-right">
+    <fieldset>
+      <legend>Skills</legend>
+      <table>
+        <thead>
+          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Status</th><th>Circ.</th><th>Item</th><th>Other</th></tr>
+        </thead>
+        <tbody>
+          {% for skill in sheet.skills %}
+          <tr>
+            <td>{{ skill.label }}</td>
+            <td class="calc">{{ skill.total|stringformat:"+d" }}</td>
+            <td><span class="hint">{{ skill.ability }}</span> {{ skill.ability_modifier|stringformat:"+d" }}</td>
+            <td>{{ skill.proficiency|stringformat:"+d" }}</td>
+            <td>{{ skill.rank_label }}</td>
+            <td>{{ skill.status.value }}</td>
+            <td>{{ skill.circumstance.value }}</td>
+            <td>{{ skill.item.value }}</td>
+            <td>{{ skill.other.value }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset><legend>Feats</legend><p>{{ kingdom.feats|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Abilities</legend><p>{{ kingdom.kingdom_abilities|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Settlements</legend><p>{{ kingdom.settlements|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Relations</legend><p>{{ kingdom.relations|default:"-"|linebreaksbr }}</p></fieldset>
+    <fieldset><legend>Ongoing events</legend><p>{{ kingdom.ongoing_events|default:"-"|linebreaksbr }}</p></fieldset>
+
+    <fieldset>
+      <legend>Custom statistics</legend>
+      <table>
+        <tbody>
+          {% for statistic in statistics %}
+          <tr><td>{{ statistic.label }}</td><td>{{ statistic.value }}</td></tr>
+          {% empty %}
+          <tr><td>No custom statistics yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sharing</legend>
+      <p class="hint">Share this link with your group:</p>
+      <p><code>{{ share_url }}</code></p>
+      <p class="hint">Sharing ID: <code>{{ kingdom.access_code }}</code></p>
+      <p><a href="{% url 'kingdoms:history' kingdom.pk %}">View history</a></p>
     </fieldset>
   </div>
 </div>

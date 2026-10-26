@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from ..models import HistoryEntry, Kingdom, Statistic
 from ..redaction import RedactAccessCodes
-from .helpers import PASSWORD, PLAYER_NAME
+from .helpers import PASSWORD, PLAYER_NAME, sheet_post_data
 
 ZERO_CODE = "0" * 64
 
@@ -79,7 +79,10 @@ class KingdomViewTests(TestCase):
         urls_and_methods = [
             ("get", reverse("kingdoms:sheet", args=[kingdom.pk])),
             ("get", reverse("kingdoms:history", args=[kingdom.pk])),
-            ("post", reverse("kingdoms:sheet", args=[kingdom.pk])),
+            ("get", reverse("kingdoms:edit", args=[kingdom.pk])),
+            ("post", reverse("kingdoms:edit", args=[kingdom.pk])),
+            ("post", reverse("kingdoms:edit_start", args=[kingdom.pk])),
+            ("post", reverse("kingdoms:edit_stop", args=[kingdom.pk])),
             ("post", reverse("kingdoms:statistic_add", args=[kingdom.pk])),
             ("post", reverse("kingdoms:statistic_edit", args=[kingdom.pk, statistic.pk])),
             ("post", reverse("kingdoms:statistic_delete", args=[kingdom.pk, statistic.pk])),
@@ -149,10 +152,10 @@ class KingdomViewTests(TestCase):
     def test_member_can_edit_details_and_history_records_changes(self):
         kingdom = self.create_kingdom()
         response = self.client.post(
-            reverse("kingdoms:sheet", args=[kingdom.pk]),
-            {"name": "Stolen Lands", "description": "Frontier", "notes": "Wild"},
+            reverse("kingdoms:edit", args=[kingdom.pk]),
+            sheet_post_data(kingdom, description="Frontier", notes="Wild"),
         )
-        self.assertRedirects(response, reverse("kingdoms:sheet", args=[kingdom.pk]))
+        self.assertRedirects(response, reverse("kingdoms:edit", args=[kingdom.pk]))
         kingdom.refresh_from_db()
         self.assertEqual(kingdom.description, "Frontier")
         entry = kingdom.history.get(action=HistoryEntry.Action.KINGDOM_EDITED)
@@ -162,20 +165,19 @@ class KingdomViewTests(TestCase):
     def test_saving_unchanged_details_writes_no_history(self):
         kingdom = self.create_kingdom()
         before = kingdom.history.count()
-        self.client.post(
-            reverse("kingdoms:sheet", args=[kingdom.pk]),
-            {"name": "Stolen Lands", "description": "", "notes": ""},
-        )
+        self.client.post(reverse("kingdoms:edit", args=[kingdom.pk]), sheet_post_data(kingdom))
         self.assertEqual(kingdom.history.count(), before)
 
     def test_invalid_details_show_form_errors(self):
         kingdom = self.create_kingdom()
         response = self.client.post(
-            reverse("kingdoms:sheet", args=[kingdom.pk]),
-            {"name": "", "description": "", "notes": ""},
+            reverse("kingdoms:edit", args=[kingdom.pk]),
+            sheet_post_data(kingdom, name="", agriculture_status="lots"),
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertContains(response, "This field is required", status_code=400)
+        self.assertContains(response, "Name: This field is required", status_code=400)
+        self.assertContains(response, "Agriculture status: Enter a whole number", status_code=400)
+        kingdom.refresh_from_db()
+        self.assertEqual(kingdom.name, "Stolen Lands")
 
     def test_statistics_add_edit_delete_with_history(self):
         kingdom = self.create_kingdom()
@@ -258,7 +260,8 @@ class KingdomViewTests(TestCase):
         self.assertContains(page, "Protect your name")
 
         writes = [
-            (sheet_url, {"name": "Renamed", "description": "", "notes": ""}),
+            (reverse("kingdoms:edit", args=[kingdom.pk]), {"name": "Renamed"}),
+            (reverse("kingdoms:edit_start", args=[kingdom.pk]), {}),
             (
                 reverse("kingdoms:statistic_add", args=[kingdom.pk]),
                 {"label": "Gold", "value": 1, "display_order": 0},
@@ -292,7 +295,7 @@ class KingdomViewTests(TestCase):
         member = self.client_class()
         member.post(reverse("kingdoms:join_link", args=[kingdom.access_code]))
         sheet_url = reverse("kingdoms:sheet", args=[kingdom.pk])
-        response = member.post(sheet_url, {"name": "Renamed", "description": "", "notes": ""})
+        response = member.post(reverse("kingdoms:edit", args=[kingdom.pk]), {"name": "Renamed"})
         self.assertRedirects(
             response,
             f"{reverse('kingdoms:names')}?next={sheet_url.replace('/', '%2F')}",

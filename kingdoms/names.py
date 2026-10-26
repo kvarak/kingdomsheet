@@ -17,6 +17,7 @@ class NameSelectionError(Exception):
 class Writer:
     display_name: str
     verified: bool
+    player_id: int | None = None
 
 
 def clean_display_name(raw):
@@ -74,7 +75,9 @@ def current_writer(request):
     if player.is_protected and request.session.get(VERIFIED_KEY) != player.pk:
         forget_name(request)
         return None
-    return Writer(display_name=player.display_name, verified=player.is_protected)
+    return Writer(
+        display_name=player.display_name, verified=player.is_protected, player_id=player.pk
+    )
 
 
 def current_editor(request):

@@ -10,6 +10,9 @@ urlpatterns = [
     path("kingdoms/join/", views.join, name="join"),
     path("join/<str:code>/", views.join_by_link, name="join_link"),
     path("kingdoms/<int:pk>/", views.sheet, name="sheet"),
+    path("kingdoms/<int:pk>/edit/", views.edit, name="edit"),
+    path("kingdoms/<int:pk>/edit/start/", views.edit_start, name="edit_start"),
+    path("kingdoms/<int:pk>/edit/stop/", views.edit_stop, name="edit_stop"),
     path("kingdoms/<int:pk>/statistics/new/", views.statistic_add, name="statistic_add"),
     path(
         "kingdoms/<int:pk>/statistics/<int:stat_pk>/", views.statistic_edit, name="statistic_edit"

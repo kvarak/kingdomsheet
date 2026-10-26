@@ -2,14 +2,10 @@ from django.db import IntegrityError, transaction
 
 from .access import new_access_code
 from .models import HistoryEntry, Kingdom, Statistic
+from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
-DETAIL_FIELDS = ("name", "description", "notes")
 STATISTIC_FIELDS = ("label", "value", "display_order")
 MAX_CODE_ATTEMPTS = 5
-
-
-def field_values(instance, fields):
-    return {field: getattr(instance, field) for field in fields}
 
 
 def create_kingdom(writer, name, description, notes):
@@ -18,6 +14,7 @@ def create_kingdom(writer, name, description, notes):
         try:
             with transaction.atomic():
                 kingdom = Kingdom.objects.create(access_code=new_access_code(), **values)
+                create_rows(kingdom)
                 _record(kingdom, writer, HistoryEntry.Action.KINGDOM_CREATED, _created(values))
             return kingdom
         except IntegrityError:
@@ -26,10 +23,17 @@ def create_kingdom(writer, name, description, notes):
     raise RuntimeError("Could not generate a unique sharing ID.")
 
 
-def update_kingdom(kingdom, writer, values):
+def update_sheet(kingdom, writer, values):
+    """Save the whole sheet from flat form values and record one history entry for the changes."""
     with transaction.atomic():
-        changes = _apply_changes(kingdom, DETAIL_FIELDS, values, extra_fields=["updated_at"])
+        kingdom_values = {field: values[field] for field in KINGDOM_FIELDS}
+        changes = _labelled(_apply_changes(kingdom, KINGDOM_FIELDS, kingdom_values))
+        for group in ROW_GROUPS:
+            for key, row in group.rows(kingdom).items():
+                row_values = {field: values[group.field_name(key, field)] for field in group.fields}
+                changes.update(_labelled(_apply_changes(row, group.fields, row_values), row))
         if changes:
+            kingdom.save(update_fields=["updated_at"])
             _record(kingdom, writer, HistoryEntry.Action.KINGDOM_EDITED, changes)
 
 
@@ -68,6 +72,12 @@ def _apply_changes(instance, fields, values, extra_fields=()):
             setattr(instance, field, values[field])
         instance.save(update_fields=[*changes, *extra_fields])
     return changes
+
+
+def _labelled(changes, row=None):
+    """Use readable history keys, such as "Agriculture rank" or "control dc base"."""
+    prefix = f"{row} " if row is not None else ""
+    return {f"{prefix}{field.replace('_', ' ')}": diff for field, diff in changes.items()}
 
 
 def _record_statistic(kingdom, writer, action, changes, statistic):

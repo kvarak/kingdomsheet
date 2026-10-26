@@ -8,8 +8,15 @@
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
 </head>
 <body>
-  <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
+  <div class="title-bar">
+    <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
+    <div class="toolbar">{% block toolbar %}{% endblock %}</div>
+  </div>
   <p class="hint"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">Name</a></p>
+
+  {% if messages %}
+  <ul class="messages">{% for message in messages %}<li class="error">{{ message }}</li>{% endfor %}</ul>
+  {% endif %}
 
   {% block content %}{% endblock %}
 

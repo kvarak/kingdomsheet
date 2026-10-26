@@ -1,6 +1,7 @@
-.env
 __pycache__/
-*.pyc
+.DS_Store
+.env
 .ruff_cache/
-staticfiles/
+*.pyc
 *.sqlite3
+staticfiles/
