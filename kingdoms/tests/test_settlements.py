@@ -116,7 +116,7 @@ class SettlementTests(TestCase):
         self.place(self.client, "4/castle", block=4)
         for url in ("kingdoms:sheet", "kingdoms:edit"):
             response = self.client.get(reverse(url, args=[self.kingdom.pk]))
-            self.assertContains(response, 'class="blocks grid-thumbnail"', count=1)
+            self.assertContains(response, 'class="grid-frame grid-thumbnail"', count=1)
             self.assertContains(response, "img/4/castle.png")
             self.assertContains(response, self.view_url)
 
@@ -149,8 +149,9 @@ class SettlementTests(TestCase):
                 "max_item_bonus": 1,
                 "influence": 1,
                 "paved_streets": "on",
-                "border_north": ["water", "bridge"],
-                "border_west": ["wall_stone"],
+                "border_north_water": "on",
+                "border_north_bridge": "on",
+                "border_west_wall": "wall_stone",
                 "ongoing_events": "",
             },
         )
@@ -162,8 +163,43 @@ class SettlementTests(TestCase):
             self.settlement.borders, {"north": ["water", "bridge"], "west": ["wall_stone"]}
         )
         page = self.client.get(self.view_url)
-        self.assertContains(page, "Water, Bridge")
+        self.assertContains(page, 'class="edge water edge-north"')
+        self.assertContains(page, 'class="bridge"')
+        self.assertContains(page, 'class="edge wall wall_stone edge-west"')
+        self.assertNotContains(page, "edge-east")
         self.assertContains(page, "Paved streets")
+
+    def settlement_data(self, **borders):
+        return {
+            "name": "Tatzlford",
+            "settlement_type": "village",
+            "level": 1,
+            "consumption": 0,
+            "max_item_bonus": 0,
+            "influence": 0,
+            "ongoing_events": "",
+            **borders,
+        }
+
+    def test_a_bridge_needs_water(self):
+        self.client.post(self.start_url)
+        response = self.client.post(self.edit_url, self.settlement_data(border_east_bridge="on"))
+        self.assertContains(response, "A bridge needs water", status_code=400)
+        self.settlement.refresh_from_db()
+        self.assertEqual(self.settlement.borders, {})
+
+    def test_a_side_has_at_most_one_wall(self):
+        self.client.post(self.start_url)
+        response = self.client.post(
+            self.edit_url, self.settlement_data(border_south_wall="wall_wood")
+        )
+        self.assertRedirects(response, self.edit_url)
+        self.settlement.refresh_from_db()
+        self.assertEqual(self.settlement.borders, {"south": ["wall_wood"]})
+        form = self.client.get(self.edit_url).content.decode()
+        self.assertEqual(form.count('type="radio" name="border_south_wall"'), 3)
+        bad = self.client.post(self.edit_url, self.settlement_data(border_south_wall="both"))
+        self.assertEqual(bad.status_code, 400)
 
     def test_settlement_being_edited_by_someone_else_cannot_be_deleted(self):
         self.bob.post(self.start_url)

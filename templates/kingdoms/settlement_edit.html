@@ -24,7 +24,7 @@
       <legend>Settlement</legend>
       <label>Name {{ form.name }}</label>
       <label>Type {{ form.settlement_type }}</label>
-      <label>Level {{ form.level }}</label>
+      <p><span class="hint">Level</span> <strong>{{ settlement.level }}</strong> <span class="hint">(one per block with a building)</span></p>
       <label>Consumption {{ form.consumption }}</label>
       <label>{{ form.overcrowded }} Overcrowded</label>
       <label>Max. item bonus {{ form.max_item_bonus }}</label>
@@ -64,6 +64,7 @@
   <div class="col-right">
     <fieldset>
       <legend>Urban grid</legend>
+      {% for line in growth %}<p class="hint growth">{{ line }}</p>{% endfor %}
       <p class="hint">Click a + to place a building there. Border checkboxes are saved with Save settlement.</p>
       {% include "kingdoms/includes/urban_grid.html" with editing=True %}
     </fieldset>

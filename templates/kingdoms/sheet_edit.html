@@ -150,7 +150,7 @@
     <fieldset>
       <legend>Settlements</legend>
       <div class="settlement-cards">
-        {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks %}
+        {% for item in settlements %}{% with settlement=item.settlement blocks=item.blocks border_sides=item.border_sides %}
           {% include "kingdoms/includes/settlement_card.html" with deletable=True %}
         {% endwith %}{% empty %}
         <p>No settlements yet.</p>

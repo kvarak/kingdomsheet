@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from . import services
+from . import growth, services
 from . import settlements as grid
 from .access import get_remembered_kingdom_or_404
 from .editing import (
@@ -31,11 +31,19 @@ def _get_settlement(request, pk, spk):
 
 def _context(request, settlement, *, form=None, selected=None):
     writer = current_writer(request)
+    counts = growth.lots_per_block(settlement.placements.all())
+    allowed = growth.allowed_blocks(settlement.settlement_type, counts)
     return {
         "kingdom": settlement.kingdom,
         "settlement": settlement,
         "writer": writer,
-        "blocks": grid.build_grid(settlement, selected),
+        "growth": growth.status(
+            settlement.settlement_type,
+            counts,
+            settlement.kingdom.level,
+            settlement.overcrowded,
+        ),
+        "blocks": grid.build_grid(settlement, selected, allowed),
         "border_sides": grid.border_sides(settlement, form),
         "infrastructure": grid.infrastructure_labels(settlement),
         "armies": settlement.armies.all(),

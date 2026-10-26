@@ -1,4 +1,4 @@
-{% comment %}One settlement on the kingdom page. Needs settlement, blocks, block_image and kingdom; `deletable` adds a Delete button.{% endcomment %}
+{% comment %}One settlement on the kingdom page. Needs settlement, blocks, border_sides, block_image and kingdom; `deletable` adds a Delete button.{% endcomment %}
 <div class="settlement-card">
   <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}" title="Open {{ settlement.name }}">
     {% include "kingdoms/includes/grid_thumbnail.html" %}

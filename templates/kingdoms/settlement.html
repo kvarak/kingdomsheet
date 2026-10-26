@@ -13,7 +13,7 @@
     <fieldset class="value-list">
       <legend>Settlement</legend>
       <p><span class="hint">Type</span> {{ settlement.get_settlement_type_display }}{% if settlement.overcrowded %} <strong class="error">(overcrowded)</strong>{% endif %}</p>
-      <p><span class="hint">Level</span> <strong>{{ settlement.level }}</strong> &middot; <span class="hint">Consumption</span> {{ settlement.consumption }}</p>
+      <p><span class="hint">Level</span> <strong>{{ settlement.level }}</strong> <span class="hint">(blocks built)</span> &middot; <span class="hint">Consumption</span> {{ settlement.consumption }}</p>
       <p><span class="hint">Max. item bonus</span> {{ settlement.max_item_bonus }} &middot; <span class="hint">Influence</span> {{ settlement.influence }} hexes</p>
       <p><span class="hint">Infrastructure</span> {{ infrastructure|join:", "|default:"none" }}</p>
     </fieldset>
@@ -33,6 +33,7 @@
   <div class="col-right">
     <fieldset>
       <legend>Urban grid</legend>
+      {% for line in growth %}<p class="hint growth">{{ line }}</p>{% endfor %}
       {% include "kingdoms/includes/urban_grid.html" with editing=False %}
     </fieldset>
   </div>

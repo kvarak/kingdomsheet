@@ -182,7 +182,8 @@ class Settlement(EditLock):
     settlement_type = models.CharField(
         "type", max_length=20, choices=Type.choices, default=Type.VILLAGE
     )
-    level = models.IntegerField(default=1)
+    # Number of blocks with at least one building, kept up to date by services. See growth.
+    level = models.IntegerField(default=0)
     consumption = models.IntegerField(default=0)
     overcrowded = models.BooleanField(default=False)
     max_item_bonus = models.IntegerField(default=0)

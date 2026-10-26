@@ -75,7 +75,11 @@ def _sheet_context(request, kingdom, sheet_form):
         "form": sheet_form,
         "sheet": build_sheet(kingdom, sheet_form),
         "settlements": [
-            {"settlement": settlement, "blocks": grid.build_grid(settlement)}
+            {
+                "settlement": settlement,
+                "blocks": grid.build_grid(settlement),
+                "border_sides": grid.border_sides(settlement),
+            }
             for settlement in kingdom.settlement_set.prefetch_related("placements", "armies")
         ],
         "block_image": grid.BLOCK_IMAGE,

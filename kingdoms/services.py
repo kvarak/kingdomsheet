@@ -1,5 +1,6 @@
 from django.db import IntegrityError, models, transaction
 
+from . import growth
 from .access import new_access_code
 from .models import Army, HistoryEntry, Kingdom, Npc, Placement, Settlement, Statistic
 from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
@@ -108,8 +109,17 @@ def delete_settlement(settlement, writer):
 
 def place_building(settlement, writer, values):
     with transaction.atomic():
+        before = growth.lots_per_block(settlement.placements.all())
         placement = Placement.objects.create(settlement=settlement, **values)
+        after = growth.lots_per_block(settlement.placements.all())
         changes = _created({"building": building_label(placement.building), **_where(placement)})
+        changes.update(
+            _regrow(
+                settlement,
+                growth.type_after_placement(settlement.settlement_type, before, after),
+                after,
+            )
+        )
         _record_and_touch(
             settlement.kingdom, writer, HistoryEntry.Action.BUILDING_PLACED, changes, settlement
         )
@@ -119,10 +129,14 @@ def place_building(settlement, writer, values):
 def remove_building(settlement, writer, placement):
     with transaction.atomic():
         changes = _deleted({"building": building_label(placement.building), **_where(placement)})
+        placement.delete()
+        after = growth.lots_per_block(settlement.placements.all())
+        changes.update(
+            _regrow(settlement, growth.type_after_removal(settlement.settlement_type, after), after)
+        )
         _record_and_touch(
             settlement.kingdom, writer, HistoryEntry.Action.BUILDING_REMOVED, changes, settlement
         )
-        placement.delete()
 
 
 def add_army(settlement, writer, name):
@@ -190,6 +204,20 @@ def _delete_file_after_commit(field_file):
     if field_file:
         name, storage = field_file.name, field_file.storage
         transaction.on_commit(lambda: storage.delete(name))
+
+
+def _regrow(settlement, new_type, counts):
+    """Save the type and level the buildings now give. Returns the history changes, if any."""
+    new = {"settlement_type": new_type, "level": growth.settlement_level(counts)}
+    changes = {}
+    for field, value in new.items():
+        old = getattr(settlement, field)
+        if value != old:
+            changes["type" if field == "settlement_type" else field] = {"old": old, "new": value}
+            setattr(settlement, field, value)
+    if changes:
+        settlement.save(update_fields=list(new))
+    return changes
 
 
 def _where(placement):

@@ -1,14 +1,20 @@
 {% comment %}
 The PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, with border features on each side.
-With `editing`, free lots link to the placement form and buildings get a remove button.
+With `editing`, free lots link to the placement form, buildings get a remove button and each
+side shows its border controls. Water, bridges and walls are drawn by grid_edges.html.
 {% endcomment %}
 {% load static %}
-<div class="urban-grid">
+<div class="urban-grid{% if editing %} editing{% endif %}">
+  {% if editing %}
   {% for side in border_sides %}
   <div class="grid-border grid-border-{{ side.key }}">
-    {% if editing %}{{ side.field }}{% elif side.text %}<span class="hint">{{ side.text }}</span>{% endif %}
+    <span class="hint">{{ side.label }}</span>
+    {% for field in side.fields %}{% if field.widget_type == "checkbox" %}<label>{{ field }} {{ field.label }}</label>{% else %}{{ field }}{% endif %}{% endfor %}
   </div>
   {% endfor %}
+  {% endif %}
+  <div class="grid-frame">
+  {% include "kingdoms/includes/grid_edges.html" %}
   <div class="blocks">
     {% for block in blocks %}
     <div class="block" style="background-image: url('{% static block_image %}')" aria-label="Block {{ block.number|add:1 }}">
@@ -25,10 +31,15 @@ With `editing`, free lots link to the placement form and buildings get a remove 
       {% endfor %}
       {% if editing %}
       {% for lot in block.free %}
+      {% if not lot.allowed %}
+      <span class="free-lot blocked" style="grid-column: {{ lot.column }}; grid-row: {{ lot.row }}" title="The growth rules do not allow building here yet"></span>
+      {% else %}
       <a class="free-lot{% if lot.selected %} selected{% endif %}" href="?block={{ block.number }}&amp;lot={{ lot.lot }}#place" style="grid-column: {{ lot.column }}; grid-row: {{ lot.row }}" title="Place a building here" aria-label="Place a building in block {{ block.number|add:1 }}, lot {{ lot.lot|add:1 }}">+</a>
+      {% endif %}
       {% endfor %}
       {% endif %}
     </div>
     {% endfor %}
+  </div>
   </div>
 </div>

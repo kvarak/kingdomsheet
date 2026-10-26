@@ -106,8 +106,15 @@ Access codes in request paths are redacted from the gunicorn logs.
 
 ## Settlements
 
-Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, border features on each side (water, bridge, wooden or stone wall), type, level, consumption, overcrowding, max item bonus, influence, infrastructure and ongoing events. These values are typed in by hand.
+Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2 lots, border features on each side, type, level, consumption, overcrowding, max item bonus, influence, infrastructure and ongoing events. These values are typed in by hand.
 
+- Each side can have water, a bridge and one wall (wooden or stone). A bridge needs water on the same side. Water, bridges and walls are drawn around the grid, also in the thumbnails on the kingdom page.
+- Growth rules decide where buildings may go and set the settlement type automatically. Free lots where nothing may be built are greyed out, and a line above the grid says what is allowed next.
+  - A settlement's level is the number of blocks with at least one building, at most 20. It updates on its own and cannot be edited.
+  - A village builds in one block only. When all 4 lots there are filled, a building in an adjacent block (sharing a side) makes it a town.
+  - A town has 2 to 4 connected blocks, in any shape. When each of its 4 blocks has at least 2 lots built, the next building may go anywhere and makes it a city.
+  - A city builds anywhere. Metropolis is chosen by hand once the kingdom is level 15, every block has at least 2 lots built and the settlement is not overcrowded. Extra urban grids are not supported yet.
+  - Removing a building recalculates the type from the remaining buildings, except for a metropolis. Editors can still change the type by hand.
 - Add or delete settlements from the kingdom sheet in edit mode. A settlement that someone else is editing cannot be deleted.
 - Editing a settlement uses its own cogwheel and lock, separate from the kingdom's, so one player can edit the kingdom while another edits a settlement.
 - In settlement edit mode, click a + on the grid, pick a building and a rotation, then place it. Overlapping buildings are refused.

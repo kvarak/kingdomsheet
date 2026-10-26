@@ -1,6 +1,8 @@
-{% comment %}A small, non-interactive urban grid. Needs blocks and block_image.{% endcomment %}
+{% comment %}A small, non-interactive urban grid. Needs blocks, border_sides and block_image.{% endcomment %}
 {% load static %}
-<div class="blocks grid-thumbnail" aria-hidden="true">
+<div class="grid-frame grid-thumbnail" aria-hidden="true">
+{% include "kingdoms/includes/grid_edges.html" %}
+<div class="blocks">
   {% for block in blocks %}
   <div class="block" style="background-image: url('{% static block_image %}')">
     {% for item in block.items %}
@@ -10,4 +12,5 @@
     {% endfor %}
   </div>
   {% endfor %}
+</div>
 </div>

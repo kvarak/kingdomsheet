@@ -1,0 +1,5 @@
+{% comment %}Water, bridges and walls drawn around the blocks. Needs border_sides; goes inside .grid-frame.{% endcomment %}
+{% for side in border_sides %}
+{% if side.water %}<div class="edge water edge-{{ side.key }}" title="Water ({{ side.label|lower }})">{% if side.bridge %}<div class="bridge" title="Bridge ({{ side.label|lower }})"></div>{% endif %}</div>{% endif %}
+{% if side.wall %}<div class="edge wall {{ side.wall }} edge-{{ side.key }}" title="{% if side.wall == 'wall_stone' %}Stone{% else %}Wooden{% endif %} wall ({{ side.label|lower }})"></div>{% endif %}
+{% endfor %}

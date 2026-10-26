@@ -24,12 +24,13 @@ BORDER_FEATURES = [
     ("wall_wood", "Wall (wood)"),
     ("wall_stone", "Wall (stone)"),
 ]
+# A side has at most one wall. A bridge needs water on the same side.
+WALLS = [("", "No wall"), ("wall_wood", "Wooden wall"), ("wall_stone", "Stone wall")]
 
 # Settlement fields edited on the sheet, besides the borders.
 DETAIL_FIELDS = (
     "name",
     "settlement_type",
-    "level",
     "consumption",
     "overcrowded",
     "max_item_bonus",
@@ -112,10 +113,11 @@ def blocked_lots(placements, block):
     return taken
 
 
-def build_grid(settlement, selected=None):
+def build_grid(settlement, selected=None, allowed_blocks=None):
     """Return the 9 blocks with their buildings and free lots, ready for the template.
 
-    `selected` is an optional (block, lot) pair to highlight in edit mode.
+    `selected` is an optional (block, lot) pair to highlight in edit mode. Free lots outside
+    `allowed_blocks` are marked as not buildable under the growth rules.
     """
     placements = list(settlement.placements.all())
     blocks = []
@@ -147,6 +149,7 @@ def build_grid(settlement, selected=None):
                 "column": lot_cell(lot)[0] + 1,
                 "row": lot_cell(lot)[1] + 1,
                 "selected": (block, lot) == selected,
+                "allowed": allowed_blocks is None or block in allowed_blocks,
             }
             for lot in LOTS
             if lot not in taken
@@ -155,17 +158,36 @@ def build_grid(settlement, selected=None):
     return blocks
 
 
+def side_features(borders, side):
+    """{"water": bool, "bridge": bool, "wall": "" or a WALLS key} for one side."""
+    features = borders.get(side, [])
+    wall = next((key for key, _ in WALLS if key and key in features), "")
+    return {"water": "water" in features, "bridge": "bridge" in features, "wall": wall}
+
+
+def features_list(water, bridge, wall):
+    """The stored form of one side: a list such as ["water", "bridge", "wall_stone"]."""
+    return [key for key, on in (("water", water), ("bridge", bridge), (wall, bool(wall))) if on]
+
+
 def border_sides(settlement, form=None):
-    """One entry per side of the grid: its form field when editing, otherwise its features."""
+    """One entry per side of the grid, with its saved features and, when editing, its fields."""
     labels = dict(BORDER_FEATURES)
-    return [
-        {
+    sides = []
+    for side, label in SIDES:
+        features = side_features(settlement.borders, side)
+        entry = {
             "key": side,
-            "field": form[f"border_{side}"] if form is not None else None,
+            "label": label,
+            **features,
             "text": ", ".join(labels[f] for f in settlement.borders.get(side, []) if f in labels),
         }
-        for side, _ in SIDES
-    ]
+        if form is not None:
+            entry["fields"] = [
+                form[f"border_{side}_{part}"] for part in ("water", "bridge", "wall")
+            ]
+        sides.append(entry)
+    return sides
 
 
 def infrastructure_labels(settlement):

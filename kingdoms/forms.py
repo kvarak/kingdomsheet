@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.models import fields_for_model
 
-from . import pictures
+from . import growth, pictures
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
 from .models import Army, Kingdom, Npc, Placement, Settlement
@@ -57,11 +57,15 @@ class SettlementForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields.update(fields_for_model(Settlement, fields=self.MODEL_FIELDS))
         for side, label in grid.SIDES:
-            self.fields[f"border_{side}"] = forms.MultipleChoiceField(
-                label=label,
-                choices=grid.BORDER_FEATURES,
+            self.fields[f"border_{side}_water"] = forms.BooleanField(label="Water", required=False)
+            self.fields[f"border_{side}_bridge"] = forms.BooleanField(
+                label="Bridge", required=False
+            )
+            self.fields[f"border_{side}_wall"] = forms.ChoiceField(
+                label=f"{label} wall",
+                choices=grid.WALLS,
                 required=False,
-                widget=forms.CheckboxSelectMultiple,
+                widget=forms.RadioSelect,
             )
         _join_form(self)
 
@@ -69,17 +73,34 @@ class SettlementForm(forms.Form):
     def initial_for(cls, settlement):
         initial = {name: getattr(settlement, name) for name in cls.MODEL_FIELDS}
         for side, _ in grid.SIDES:
-            initial[f"border_{side}"] = settlement.borders.get(side, [])
+            for part, value in grid.side_features(settlement.borders, side).items():
+                initial[f"border_{side}_{part}"] = value
         return initial
+
+    def clean(self):
+        data = super().clean()
+        for side, label in grid.SIDES:
+            if data.get(f"border_{side}_bridge") and not data.get(f"border_{side}_water"):
+                self.add_error(
+                    f"border_{side}_bridge",
+                    f"A bridge needs water. Tick Water on the {label.lower()} side too.",
+                )
+        return data
 
     def settlement_values(self):
         """Cleaned data in the shape the Settlement model stores."""
         values = {name: self.cleaned_data[name] for name in self.MODEL_FIELDS}
-        values["borders"] = {
-            side: self.cleaned_data[f"border_{side}"]
-            for side, _ in grid.SIDES
-            if self.cleaned_data[f"border_{side}"]
-        }
+        borders = {}
+        for side, _ in grid.SIDES:
+            features = grid.features_list(
+                *(
+                    self.cleaned_data[f"border_{side}_{part}"]
+                    for part in ("water", "bridge", "wall")
+                )
+            )
+            if features:
+                borders[side] = features
+        values["borders"] = borders
         return values
 
 
@@ -146,6 +167,11 @@ class PlacementForm(forms.Form):
             raise forms.ValidationError(
                 f"{building.label} would overlap {', '.join(clashes)}. Pick a free spot."
             )
+        counts = growth.lots_per_block(Placement.objects.filter(settlement=self.settlement))
+        try:
+            growth.check_placement(self.settlement.settlement_type, counts, data["block"])
+        except growth.PlacementNotAllowed as error:
+            raise forms.ValidationError(str(error)) from error
         return data
 
 

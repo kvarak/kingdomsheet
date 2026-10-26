@@ -196,6 +196,11 @@ td, th {
 
 /* Urban grid: 3 x 3 blocks of 2 x 2 lots, with border features around it. */
 .urban-grid {
+  max-width: 44rem;
+}
+
+.urban-grid.editing {
+  max-width: none;
   display: grid;
   grid-template-columns: 7.5rem minmax(0, 1fr) 7.5rem;
   grid-template-areas:
@@ -223,14 +228,93 @@ td, th {
   font-size: 0.85rem;
 }
 
-.blocks {
+.grid-frame {
   grid-area: blocks;
+  position: relative;
+  /* Room outside the town for water. Walls sit on the town's outer edge. */
+  --water: 1.4rem;
+  --wall: 0.65rem;
+  padding: var(--water);
+  max-width: 40rem;
+}
+
+.blocks {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.9rem;
   padding: 0.9rem;
   background: #b39b6e;
-  max-width: 40rem;
+}
+
+.edge {
+  position: absolute;
+}
+
+.water {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(255, 255, 255, 0.18) 6px 8px),
+    #4f8fc9;
+}
+
+.water.edge-north { top: 0; left: 0; right: 0; height: var(--water); }
+.water.edge-south { bottom: 0; left: 0; right: 0; height: var(--water); }
+.water.edge-west { top: 0; bottom: 0; left: 0; width: var(--water); }
+.water.edge-east { top: 0; bottom: 0; right: 0; width: var(--water); }
+
+/* A plank across the middle of the water, from the bank to the town. */
+.bridge {
+  position: absolute;
+  background: repeating-linear-gradient(90deg, #8b5a2b 0 5px, #6e4520 5px 6px);
+  border: 1px solid #4a2e14;
+  box-sizing: border-box;
+}
+
+.edge-north .bridge, .edge-south .bridge {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--water) * 1.6);
+  transform: translateX(-50%);
+}
+
+.edge-west .bridge, .edge-east .bridge {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: calc(var(--water) * 1.6);
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(0deg, #8b5a2b 0 5px, #6e4520 5px 6px);
+}
+
+.wall.edge-north { top: var(--water); left: var(--water); right: var(--water); height: var(--wall); }
+.wall.edge-south { bottom: var(--water); left: var(--water); right: var(--water); height: var(--wall); }
+.wall.edge-west { top: var(--water); bottom: var(--water); left: var(--water); width: var(--wall); }
+.wall.edge-east { top: var(--water); bottom: var(--water); right: var(--water); width: var(--wall); }
+
+.wall_wood {
+  background: repeating-linear-gradient(90deg, #7a4b22 0 4px, #5c3716 4px 6px);
+}
+
+.wall_wood.edge-west, .wall_wood.edge-east {
+  background: repeating-linear-gradient(0deg, #7a4b22 0 4px, #5c3716 4px 6px);
+}
+
+.wall_stone {
+  background: repeating-linear-gradient(90deg, #7d7d7d 0 10px, #3f3f3f 10px 12px);
+  outline: 1px solid #333;
+}
+
+.wall_stone.edge-west, .wall_stone.edge-east {
+  background: repeating-linear-gradient(0deg, #7d7d7d 0 10px, #3f3f3f 10px 12px);
+}
+
+.grid-border .hint {
+  display: block;
+  font-weight: 600;
+}
+
+.grid-border ul, .grid-border div:has(> div > label > input[type="radio"]) {
+  margin: 0;
 }
 
 .block {
@@ -339,11 +423,16 @@ td, th {
   gap: 0.25rem;
 }
 
-.blocks.grid-thumbnail {
-  gap: 0.3rem;
-  padding: 0.3rem;
+.grid-frame.grid-thumbnail {
+  --water: 0.5rem;
+  --wall: 0.25rem;
   width: 100%;
   box-sizing: border-box;
+}
+
+.grid-thumbnail .blocks {
+  gap: 0.3rem;
+  padding: 0.3rem;
 }
 
 .inline-form {
@@ -395,4 +484,13 @@ td, th {
   object-fit: cover;
   border-radius: 50%;
   vertical-align: middle;
+}
+
+.free-lot.blocked {
+  background: rgba(0, 0, 0, 0.18);
+  cursor: not-allowed;
+}
+
+.growth {
+  color: #2a5a9c;
 }
