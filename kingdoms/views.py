@@ -98,7 +98,7 @@ def _render_edit(
     status=200,
 ):
     """Render the editable sheet. `row_forms` maps statistic IDs to forms that failed validation."""
-    sheet_form = sheet_form or SheetForm(initial=sheet_values(kingdom))
+    sheet_form = sheet_form or SheetForm(initial=sheet_values(kingdom), kingdom=kingdom)
     row_forms = row_forms or {}
     context = _sheet_context(request, kingdom, sheet_form)
     context["sheet_errors"] = error_messages(sheet_form) if sheet_form.is_bound else []
@@ -160,7 +160,9 @@ def join_by_link(request, code):
 @require_GET
 def sheet(request, pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    context = _sheet_context(request, kingdom, SheetForm(initial=sheet_values(kingdom)))
+    context = _sheet_context(
+        request, kingdom, SheetForm(initial=sheet_values(kingdom), kingdom=kingdom)
+    )
     context["statistics"] = kingdom.statistics.all()
     return render(request, "kingdoms/sheet.html", context)
 
@@ -189,7 +191,7 @@ def edit(request, pk):
     writer, refused = _take_kingdom_lock(request, kingdom)
     if refused:
         return refused
-    form = SheetForm(request.POST)
+    form = SheetForm(request.POST, kingdom=kingdom)
     if not form.is_valid():
         return _render_edit(request, kingdom, sheet_form=form, status=400)
     services.update_sheet(kingdom, writer, form.cleaned_data)

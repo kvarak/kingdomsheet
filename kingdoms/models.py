@@ -113,10 +113,30 @@ class KingdomSkill(models.Model):
         return self.get_skill_display()
 
 
+class Npc(models.Model):
+    """A named character with a picture, belonging to one kingdom."""
+
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="npcs")
+    name = models.CharField(max_length=80)
+    # Always a downscaled WebP made by kingdoms.pictures, stored under a random name.
+    picture = models.FileField(upload_to="npcs/", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+        verbose_name = "NPC"
+
+    def __str__(self):
+        return self.name
+
+
 class KingdomLeader(models.Model):
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="leaders")
     role = models.CharField(
         max_length=20, choices=[(key, label) for key, label, _ in pf2e.LEADERSHIP_ROLES]
+    )
+    npc = models.ForeignKey(
+        Npc, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", verbose_name="NPC"
     )
     character = models.CharField(max_length=80, blank=True)
     invested = models.BooleanField(default=False)
@@ -326,12 +346,15 @@ class HistoryEntry(models.Model):
         ARMY_ADDED = "army_added", "Army added"
         ARMY_EDITED = "army_edited", "Army edited"
         ARMY_DELETED = "army_deleted", "Army deleted"
+        NPC_ADDED = "npc_added", "NPC added"
+        NPC_EDITED = "npc_edited", "NPC edited"
+        NPC_DELETED = "npc_deleted", "NPC deleted"
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.PROTECT, related_name="history")
     action = models.CharField(max_length=32, choices=Action.choices)
     display_name = models.CharField(max_length=40)
     name_verified = models.BooleanField()
-    # What the entry is about besides the kingdom itself: a statistic, settlement or army.
+    # What the entry is about besides the kingdom itself: a statistic, settlement, army or NPC.
     subject_id = models.PositiveBigIntegerField(null=True, blank=True)
     subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)

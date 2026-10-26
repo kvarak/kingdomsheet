@@ -54,9 +54,10 @@ class RowGroup:
         return f"{key}_{field}"
 
     def rows(self, kingdom):
-        return {
-            getattr(row, self.key_field): row for row in self.model.objects.filter(kingdom=kingdom)
-        }
+        rows = self.model.objects.filter(kingdom=kingdom)
+        if "npc" in self.fields:
+            rows = rows.select_related("npc")
+        return {getattr(row, self.key_field): row for row in rows}
 
 
 ABILITY_ROWS = RowGroup(
@@ -75,7 +76,7 @@ LEADER_ROWS = RowGroup(
     KingdomLeader,
     "role",
     tuple(key for key, _, _ in pf2e.LEADERSHIP_ROLES),
-    ("character", "invested"),
+    ("npc", "character", "invested"),
 )
 COMMODITY_ROWS = RowGroup(
     KingdomCommodity,
@@ -113,6 +114,7 @@ def build_sheet(kingdom, form):
     """Group bound form fields and calculated values the way the template lays them out."""
     abilities = ABILITY_ROWS.rows(kingdom)
     scores = {key: row.score for key, row in abilities.items()}
+    leaders = LEADER_ROWS.rows(kingdom)
 
     def field(group, key, name):
         return form[group.field_name(key, name)]
@@ -140,7 +142,9 @@ def build_sheet(kingdom, form):
             {
                 "label": label,
                 "invested": field(LEADER_ROWS, key, "invested"),
+                "npc": field(LEADER_ROWS, key, "npc"),
                 "character": field(LEADER_ROWS, key, "character"),
+                "saved_npc": leaders[key].npc,
             }
             for key, label, _ in pf2e.LEADERSHIP_ROLES
         ],

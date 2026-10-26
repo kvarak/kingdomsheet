@@ -23,6 +23,8 @@ services:
     env_file: .env
     environment:
       POSTGRES_HOST: db
+    volumes:
+      - media-data:/data/media
     ports:
       - "127.0.0.1:8000:8000"
     # A TCP connect proves gunicorn is accepting requests without adding lines to the access log.
@@ -51,3 +53,4 @@ services:
 
 volumes:
   db-data:
+  media-data:

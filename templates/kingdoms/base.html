@@ -12,7 +12,7 @@
     <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
     <div class="toolbar">{% block toolbar %}{% endblock %}</div>
   </div>
-  <p class="hint"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">Name</a></p>
+  <p class="hint"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">Name</a>{% if kingdom and kingdom.pk in request.session.kingdom_ids %} &middot; <a href="{% url 'kingdoms:npcs' kingdom.pk %}">NPCs</a>{% endif %}</p>
 
   {% if messages %}
   <ul class="messages">{% for message in messages %}<li class="error">{{ message }}</li>{% endfor %}</ul>

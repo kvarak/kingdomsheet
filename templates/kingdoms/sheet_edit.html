@@ -83,11 +83,12 @@
 
     <fieldset>
       <legend>Leaders</legend>
+      <p class=\"hint\">Pick an NPC, or type a name for a player character. <a href=\"{% url 'kingdoms:npcs' kingdom.pk %}\">Manage NPCs</a></p>
       <table>
         <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.character }}</td></tr>
+          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.npc }} <span class="hint">or</span> {{ leader.character }}</td></tr>
           {% endfor %}
         </tbody>
       </table>

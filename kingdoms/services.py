@@ -1,7 +1,7 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 
 from .access import new_access_code
-from .models import Army, HistoryEntry, Kingdom, Placement, Settlement, Statistic
+from .models import Army, HistoryEntry, Kingdom, Npc, Placement, Settlement, Statistic
 from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
@@ -151,6 +151,47 @@ def delete_army(army, writer):
         army.delete()
 
 
+def add_npc(kingdom, writer, name, picture):
+    with transaction.atomic():
+        npc = Npc(kingdom=kingdom, name=name)
+        if picture:
+            npc.picture.save(picture.name, picture, save=False)
+        npc.save()
+        changes = _created({"name": name, "picture": bool(picture)})
+        _record_and_touch(kingdom, writer, HistoryEntry.Action.NPC_ADDED, changes, npc)
+    return npc
+
+
+def update_npc(npc, writer, name, picture):
+    """Rename the NPC and, if `picture` is given, replace its picture."""
+    with transaction.atomic():
+        changes = {}
+        if name != npc.name:
+            changes["name"] = {"old": npc.name, "new": name}
+            npc.name = name
+        if picture:
+            _delete_file_after_commit(npc.picture)
+            npc.picture.save(picture.name, picture, save=False)
+            changes["picture"] = {"old": "previous picture", "new": "new picture"}
+        if changes:
+            npc.save()
+            _record_and_touch(npc.kingdom, writer, HistoryEntry.Action.NPC_EDITED, changes, npc)
+
+
+def delete_npc(npc, writer):
+    with transaction.atomic():
+        _delete_file_after_commit(npc.picture)
+        changes = _deleted({"name": npc.name})
+        _record_and_touch(npc.kingdom, writer, HistoryEntry.Action.NPC_DELETED, changes, npc)
+        npc.delete()
+
+
+def _delete_file_after_commit(field_file):
+    if field_file:
+        name, storage = field_file.name, field_file.storage
+        transaction.on_commit(lambda: storage.delete(name))
+
+
 def _where(placement):
     return {"block": placement.block + 1, "lot": LOT_NAMES[placement.lot].lower()}
 
@@ -191,13 +232,20 @@ def _record(kingdom, writer, action, changes, subject=None):
 
 def _diff(old, new):
     return {
-        field: {"old": old[field], "new": new[field]} for field in new if old[field] != new[field]
+        field: {"old": _json(old[field]), "new": _json(new[field])}
+        for field in new
+        if old[field] != new[field]
     }
 
 
 def _created(values):
-    return {field: {"old": None, "new": value} for field, value in values.items()}
+    return {field: {"old": None, "new": _json(value)} for field, value in values.items()}
 
 
 def _deleted(values):
-    return {field: {"old": value, "new": None} for field, value in values.items()}
+    return {field: {"old": _json(value), "new": None} for field, value in values.items()}
+
+
+def _json(value):
+    """History is stored as JSON, so linked rows such as an NPC are recorded by name."""
+    return str(value) if isinstance(value, models.Model) else value

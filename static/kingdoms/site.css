@@ -327,3 +327,44 @@ td, th {
   padding-left: 1.1rem;
   font-size: 0.9rem;
 }
+
+.npc-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.npc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 12rem;
+}
+
+.npc-card input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.npc-picture {
+  width: 12rem;
+  height: 12rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  background: #eee;
+}
+
+.npc-no-picture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.npc-avatar {
+  width: 1.8rem;
+  height: 1.8rem;
+  object-fit: cover;
+  border-radius: 50%;
+  vertical-align: middle;
+}

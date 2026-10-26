@@ -74,7 +74,7 @@
         <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{{ leader.character.value|default:"Vacant" }}</td></tr>
+          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{% if leader.saved_npc %}{% include "kingdoms/includes/npc_avatar.html" with npc=leader.saved_npc %} {{ leader.saved_npc.name }}{% else %}{{ leader.character.value|default:"Vacant" }}{% endif %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

@@ -1,10 +1,11 @@
 from django import forms
 from django.forms.models import fields_for_model
 
+from . import pictures
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
-from .models import Army, Kingdom, Placement, Settlement
-from .sheet import KINGDOM_FIELDS, ROW_GROUPS
+from .models import Army, Kingdom, Npc, Placement, Settlement
+from .sheet import KINGDOM_FIELDS, LEADER_ROWS, ROW_GROUPS
 
 PASSWORD_MIN_LENGTH = 8
 
@@ -26,7 +27,7 @@ class SheetForm(forms.Form):
 
     FORM_ID = "sheet-form"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, kingdom, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields.update(fields_for_model(Kingdom, fields=KINGDOM_FIELDS))
         for group in ROW_GROUPS:
@@ -34,6 +35,10 @@ class SheetForm(forms.Form):
                 # Each call returns fresh field objects, so rows never share widgets.
                 for name, field in fields_for_model(group.model, fields=group.fields).items():
                     self.fields[group.field_name(key, name)] = field
+        npcs = Npc.objects.filter(kingdom=kingdom)
+        for key in LEADER_ROWS.keys:
+            # Leaders may only be this kingdom's NPCs.
+            self.fields[LEADER_ROWS.field_name(key, "npc")].queryset = npcs
         _join_form(self)
 
 
@@ -94,6 +99,22 @@ class ArmyForm(forms.ModelForm):
             "conditions": forms.Textarea(attrs={"rows": 4}),
             "abilities": forms.Textarea(attrs={"rows": 4}),
         }
+
+
+class NpcForm(forms.Form):
+    name = forms.CharField(max_length=80)
+    picture = forms.FileField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={"accept": "image/jpeg,image/png,image/gif,image/webp"}
+        ),
+        help_text="JPEG, PNG, GIF or WebP. It is shrunk to at most "
+        f"{pictures.MAX_SIDE} pixels on its longest side.",
+    )
+
+    def clean_picture(self):
+        upload = self.cleaned_data["picture"]
+        return pictures.downscale(upload) if upload else None
 
 
 class PlacementForm(forms.Form):
