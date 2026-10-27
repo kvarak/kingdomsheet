@@ -1,4 +1,3 @@
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
@@ -212,7 +211,6 @@ class Army(EditLock):
     combat is calculated here.
     """
 
-    MAX_HEALING_POTIONS = 3
     # Fields edited in the interface.
     ROSTER_FIELDS = ("name", "garrison", "commander", "location", "notes")
 
@@ -232,37 +230,6 @@ class Army(EditLock):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Obsolete Kingmaker army sheet fields, hidden from the interface since armies became unit
-    # rosters. Kept with their data until a reviewed migration removes them.
-    level = models.IntegerField(default=1)
-    alignment = models.CharField(max_length=30, blank=True)
-    army_type = models.CharField("army type", max_length=80, blank=True)
-    scouting = models.IntegerField(default=0)
-    scouting_dc = models.IntegerField("scouting DC", default=0)
-    recruitment_dc = models.IntegerField("recruitment DC", default=0)
-    ac = models.IntegerField("AC", default=0)
-    maneuver = models.IntegerField(default=0)
-    maneuver_dc = models.IntegerField("maneuver DC", default=0)
-    morale = models.IntegerField(default=0)
-    morale_dc = models.IntegerField("morale DC", default=0)
-    armor_bonus = models.IntegerField(default=0)
-    hp = models.IntegerField("HP", default=0)
-    current_hp = models.IntegerField("current HP", default=0)
-    rout_threshold = models.IntegerField(default=0)
-    melee = models.CharField(max_length=120, blank=True)
-    ranged = models.CharField(max_length=120, blank=True)
-    shots = models.IntegerField(default=0)
-    tactics = models.TextField(blank=True, help_text="One tactic per line.")
-    tactical_actions = models.TextField(blank=True)
-    conditions = models.TextField("current conditions", blank=True)
-    abilities = models.TextField("current abilities", blank=True)
-    armor_gear = models.CharField("armor", max_length=120, blank=True)
-    melee_gear = models.CharField("melee gear", max_length=120, blank=True)
-    ranged_gear = models.CharField("ranged gear", max_length=120, blank=True)
-    healing_potions = models.IntegerField(
-        default=0, validators=[MinValueValidator(0), MaxValueValidator(MAX_HEALING_POTIONS)]
-    )
-
     class Meta:
         ordering = ["name", "id"]
         verbose_name_plural = "armies"
@@ -272,17 +239,26 @@ class Army(EditLock):
 
 
 class Unit(models.Model):
-    """One unit in an army roster. Every value is typed in by the players.
-
-    The fields follow what Strongholds & Followers units record, but nothing here is checked
-    against those rules: there are no derived statistics, fixed category lists or casualty rules.
+    """One unit in an army roster, as in the campaign's Kingmaker Warfare house rules (inspired by
+    Strongholds & Followers). Every value is typed in by the players; only `diminished` and
+    `battle_morale` are derived.
     """
+
+    # A unit's hero gives it this much Morale while the hero is with it.
+    HERO_MORALE = 2
+
+    class Quality(models.TextChoices):
+        MILITIA = "militia", "Militia"
+        TRAINED = "trained", "Trained"
+        VETERAN = "veteran", "Veteran"
+        ELITE = "elite", "Elite"
 
     # Fields edited in the interface, in display order.
     FIELDS = (
         "name",
+        "hero",
         "ancestry",
-        "experience",
+        "quality",
         "equipment",
         "unit_type",
         "attack",
@@ -302,8 +278,11 @@ class Unit(models.Model):
 
     army = models.ForeignKey(Army, on_delete=models.CASCADE, related_name="units")
     name = models.CharField(max_length=120)
+    hero = models.ForeignKey(
+        "Character", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     ancestry = models.CharField(max_length=80, blank=True)
-    experience = models.CharField(max_length=80, blank=True)
+    quality = models.CharField(max_length=10, choices=Quality.choices, blank=True)
     equipment = models.CharField(max_length=80, blank=True)
     unit_type = models.CharField("unit type", max_length=80, blank=True)
     attack = models.IntegerField(default=0)
@@ -311,7 +290,7 @@ class Unit(models.Model):
     power = models.IntegerField(default=0)
     toughness = models.IntegerField(default=0)
     morale = models.IntegerField(default=0)
-    size = models.CharField("size / casualty die", max_length=40, blank=True)
+    size = models.CharField(max_length=40, blank=True)
     current_strength = models.PositiveIntegerField(default=0)
     max_strength = models.PositiveIntegerField(default=0)
     status = models.CharField(max_length=80, blank=True)
@@ -325,6 +304,16 @@ class Unit(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def diminished(self):
+        """At half its maximum Strength or less (rounding down) but not yet defeated."""
+        return 0 < self.current_strength <= self.max_strength // 2
+
+    @property
+    def battle_morale(self):
+        """Morale including the hero's bonus, as written on the unit card before battle."""
+        return self.morale + (self.HERO_MORALE if self.hero_id else 0)
 
 
 class Battle(models.Model):

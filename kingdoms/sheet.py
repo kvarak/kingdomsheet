@@ -158,6 +158,7 @@ def build_sheet(kingdom, form):
             }
             for key, label, ability in rules.LEADERSHIP_ROLES
         ],
+        "max_invested": rules.MAX_INVESTED_LEADERS,
         "skills": _skill_rows(kingdom, form, scores, vacant),
         "commodities": [
             {

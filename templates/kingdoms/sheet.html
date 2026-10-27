@@ -71,7 +71,7 @@
     <fieldset>
       <legend>Leaders</legend>
       <table>
-        <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
+        <thead><tr><th title="Invested">Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
           <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{% if leader.saved_character %}{% include "kingdoms/includes/character_avatar.html" with character=leader.saved_character %} {{ leader.saved_character.name }}{% else %}Vacant{% endif %}</td></tr>

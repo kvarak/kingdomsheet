@@ -1,14 +1,21 @@
+from importlib import import_module
+
+from django.apps import apps
 from django.test import TestCase
 from django.urls import reverse
 
-from ..models import Army, Battle, HistoryEntry, Kingdom, Settlement, Unit
+from ..models import Army, Battle, Character, HistoryEntry, Kingdom, Settlement, Unit
 from ..roster import unit_summary
 from .helpers import PASSWORD, PLAYER_NAME
+from .test_armies import army_post_data
 
 
 def unit_post_data(unit, **overrides):
-    """A full unit form POST built from the unit's saved values."""
-    return {**{field: getattr(unit, field) for field in Unit.FIELDS}, **overrides}
+    """A full unit form POST built from the unit's saved values, sending IDs for linked rows."""
+    values = {**{field: getattr(unit, field) for field in Unit.FIELDS}, **overrides}
+    return {
+        name: "" if value is None else getattr(value, "pk", value) for name, value in values.items()
+    }
 
 
 class RosterTestCase(TestCase):
@@ -70,14 +77,14 @@ class UnitTests(RosterTestCase):
             unit_post_data(
                 unit,
                 ancestry="Human",
-                experience="Something unlisted",
+                quality="veteran",
                 unit_type="Infantry",
                 attack=2,
                 defense=13,
                 power=1,
                 toughness=11,
                 morale=1,
-                size="1d6",
+                size="about 50 soldiers",
                 current_strength=4,
                 max_strength=6,
                 status="Shaken",
@@ -86,11 +93,24 @@ class UnitTests(RosterTestCase):
         self.assertRedirects(response, self.army_edit_url)
         unit.refresh_from_db()
         self.assertEqual(
-            (unit.experience, unit.current_strength, unit.size), ("Something unlisted", 4, "1d6")
+            (unit.quality, unit.current_strength, unit.size),
+            ("veteran", 4, "about 50 soldiers"),
         )
         entry = self.kingdom.history.get(action=HistoryEntry.Action.UNIT_EDITED)
         self.assertEqual(entry.changes["current strength"], {"old": 0, "new": 4})
         self.assertEqual(entry.changes["defense"], {"old": 0, "new": 13})
+
+    def test_quality_is_one_of_the_four_or_empty(self):
+        self.add_unit()
+        unit = Unit.objects.get(name="Pikes")
+        url = self.unit_url("kingdoms:unit_edit", unit)
+        editor = self.client.get(url)
+        self.assertContains(editor, '<option value="" selected>-</option>', html=True)
+        self.assertContains(editor, '<option value="elite">Elite</option>', html=True)
+        response = self.client.post(url, unit_post_data(unit, quality="Regular"))
+        self.assertContains(response, "Quality:", status_code=400)
+        unit.refresh_from_db()
+        self.assertEqual(unit.quality, "")
 
     def test_strength_must_be_nonnegative_and_not_above_maximum(self):
         self.add_unit()
@@ -130,14 +150,14 @@ class UnitSummaryTests(RosterTestCase):
             army=self.army,
             name="Pikes",
             ancestry="Human",
-            experience="Regular",
+            quality="trained",
             unit_type="Infantry",
             attack=2,
             defense=13,
             power=1,
             toughness=11,
             morale=-1,
-            size="1d6",
+            size="about 50 soldiers",
             current_strength=4,
             max_strength=6,
             traits="Set for charge",
@@ -146,12 +166,28 @@ class UnitSummaryTests(RosterTestCase):
         self.assertEqual(
             unit_summary(unit),
             "Pikes (Tatzlford Militia)\n"
-            "Human, Regular, Infantry\n"
+            "Human, Trained, Infantry\n"
             "Attack 2, Defense 13, Power 1, Toughness 11, Morale -1\n"
-            "Strength 4/6, size 1d6\n"
+            "Strength 4/6, size about 50 soldiers\n"
             "Traits: Set for charge\n"
             "Notes: Raised in Tatzlford",
         )
+
+    def test_diminished_is_half_maximum_or_less_rounding_down_but_not_defeated(self):
+        cases = {(6, 4): False, (6, 3): True, (5, 3): False, (5, 2): True, (6, 1): True}
+        cases[(6, 0)] = False
+        for (maximum, current), expected in cases.items():
+            unit = Unit(army=self.army, current_strength=current, max_strength=maximum)
+            self.assertIs(unit.diminished, expected, (current, maximum))
+
+    def test_diminished_units_are_marked_in_the_table_and_summary(self):
+        Unit.objects.create(army=self.army, name="Pikes", current_strength=3, max_strength=6)
+        Unit.objects.create(army=self.army, name="Bows", current_strength=4, max_strength=6)
+        page = self.client.get(self.army_url)
+        self.assertContains(page, "<strong>diminished</strong>", count=1)
+        self.assertContains(page, "Strength 3/6, diminished")
+        self.assertNotContains(page, "Strength 4/6, diminished")
+        self.assertContains(page, "12_kingmaker_war.html")
 
     def test_army_page_offers_copy_and_read_only_box(self):
         unit = Unit.objects.create(army=self.army, name="Pikes", current_strength=3, max_strength=4)
@@ -161,6 +197,91 @@ class UnitSummaryTests(RosterTestCase):
         )
         self.assertContains(page, f'<textarea id="summary-{unit.pk}" readonly')
         self.assertContains(page, "Strength 3/4")
+
+
+class HeroTests(RosterTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.post(self.army_start)
+        self.add_unit()
+        self.add_unit(name="Bows")
+        self.pikes = Unit.objects.get(name="Pikes")
+        self.bows = Unit.objects.get(name="Bows")
+        self.amiri = Character.objects.create(kingdom=self.kingdom, name="Amiri", kind="pc")
+        self.kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="npc")
+
+    def set_hero(self, unit, hero, **values):
+        return self.client.post(
+            self.unit_url("kingdoms:unit_edit", unit), unit_post_data(unit, hero=hero, **values)
+        )
+
+    def set_commander(self, commander):
+        return self.client.post(self.army_edit_url, army_post_data(self.army, commander=commander))
+
+    def test_hero_adds_two_morale_to_the_table_and_summary(self):
+        response = self.set_hero(self.pikes, self.amiri, morale=2)
+        self.assertRedirects(response, self.army_edit_url)
+        self.pikes.refresh_from_db()
+        self.assertEqual(
+            (self.pikes.hero, self.pikes.morale, self.pikes.battle_morale), (self.amiri, 2, 4)
+        )
+        page = self.client.get(self.army_url)
+        self.assertContains(page, "incl. hero +2")
+        self.assertContains(page, "Morale 4\nHero: Amiri (Morale includes +2)")
+        entry = self.kingdom.history.get(action=HistoryEntry.Action.UNIT_EDITED)
+        self.assertEqual(entry.changes["hero"], {"old": None, "new": "Amiri"})
+
+    def test_a_character_is_the_hero_of_only_one_unit(self):
+        self.set_hero(self.pikes, self.amiri)
+        response = self.set_hero(self.bows, self.amiri)
+        self.assertContains(response, "Amiri is already the hero of Pikes.", status_code=400)
+        self.bows.refresh_from_db()
+        self.assertIsNone(self.bows.hero)
+        self.assertRedirects(self.set_hero(self.pikes, self.amiri, morale=1), self.army_edit_url)
+
+    def test_the_commander_cannot_also_be_a_hero(self):
+        self.assertRedirects(self.set_commander(self.kesten), self.army_edit_url)
+        self.army.refresh_from_db()
+        response = self.set_hero(self.pikes, self.kesten)
+        self.assertContains(response, "Kesten commands this army.", status_code=400)
+
+    def test_a_hero_cannot_also_be_the_commander(self):
+        self.set_hero(self.pikes, self.amiri)
+        response = self.set_commander(self.amiri)
+        self.assertContains(response, "Amiri is the hero of Pikes.", status_code=400)
+        self.army.refresh_from_db()
+        self.assertIsNone(self.army.commander)
+
+    def test_heroes_come_from_this_kingdom(self):
+        other = Kingdom.objects.create(name="Pitax", access_code="e" * 64)
+        stranger = Character.objects.create(kingdom=other, name="Irovetti", kind="npc")
+        response = self.set_hero(self.pikes, stranger)
+        self.assertContains(response, "Hero:", status_code=400)
+        self.assertNotContains(
+            self.client.get(self.unit_url("kingdoms:unit_edit", self.pikes)), "Irovetti"
+        )
+
+
+class QualityMigrationTests(RosterTestCase):
+    def test_free_text_quality_becomes_a_choice_or_moves_to_notes(self):
+        migration = import_module("kingdoms.migrations.0020_unit_quality_values")
+        Unit.objects.bulk_create(
+            [
+                Unit(army=self.army, name="Pikes", quality=" Veteran "),
+                Unit(army=self.army, name="Bows", quality="Regular", notes="Longbows"),
+                Unit(army=self.army, name="Levy", quality="Green"),
+            ]
+        )
+        migration.to_choices(apps, None)
+        values = {u.name: (u.quality, u.notes) for u in Unit.objects.all()}
+        self.assertEqual(
+            values,
+            {
+                "Pikes": ("veteran", ""),
+                "Bows": ("", "Longbows\nQuality: Regular"),
+                "Levy": ("", "Quality: Green"),
+            },
+        )
 
 
 class BattleTests(RosterTestCase):

@@ -6,13 +6,13 @@
   <tbody>
     {% for unit, summary in units %}
     <tr>
-      <td><strong>{{ unit.name }}</strong>{% if unit.unit_type or unit.experience %} <span class="hint">{{ unit.experience }} {{ unit.unit_type }}</span>{% endif %}</td>
+      <td><strong>{{ unit.name }}</strong>{% if unit.unit_type or unit.quality %} <span class="hint">{{ unit.get_quality_display }} {{ unit.unit_type }}</span>{% endif %}{% if unit.hero %}<br><span class="hint">Hero</span> {{ unit.hero.name }}{% endif %}</td>
       <td>{{ unit.attack }}</td>
       <td>{{ unit.defense }}</td>
       <td>{{ unit.power }}</td>
       <td>{{ unit.toughness }}</td>
-      <td>{{ unit.morale }}</td>
-      <td>{{ unit.current_strength }}/{{ unit.max_strength }}{% if unit.size %} <span class="hint">{{ unit.size }}</span>{% endif %}</td>
+      <td>{{ unit.battle_morale }}{% if unit.hero %} <span class="hint">incl. hero +{{ unit.HERO_MORALE }}</span>{% endif %}</td>
+      <td>{{ unit.current_strength }}/{{ unit.max_strength }}{% if unit.diminished %} <strong>diminished</strong>{% endif %}{% if unit.size %} <span class="hint">{{ unit.size }}</span>{% endif %}</td>
       <td>{{ unit.status|default:"-" }}</td>
       {% if editing %}
       <td>

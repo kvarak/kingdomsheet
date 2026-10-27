@@ -21,7 +21,7 @@ from .editing import (
 from .forms import ArmyForm, NewUnitForm, UnitForm
 from .models import Army, Unit
 from .names import current_writer
-from .roster import unit_summary
+from .roster import WARFARE_RULES_URL, unit_summary
 from .sheet import error_messages
 
 
@@ -32,8 +32,12 @@ def _get_army(request, pk, apk):
     )
 
 
+def _units(army):
+    return army.units.select_related("hero")
+
+
 def _get_unit(army, upk):
-    return get_object_or_404(Unit, pk=upk, army=army)
+    return get_object_or_404(Unit.objects.select_related("army__kingdom"), pk=upk, army=army)
 
 
 def _unit_edit_url(unit):
@@ -47,14 +51,15 @@ def _context(request, army):
         "army": army,
         "kingdom": army.kingdom,
         "writer": writer,
-        "units": [(unit, unit_summary(unit)) for unit in army.units.all()],
+        "units": [(unit, unit_summary(unit)) for unit in _units(army)],
+        "rules_url": WARFARE_RULES_URL,
         **lock_context(army, writer),
     }
 
 
 def _render_edit(request, army, *, form=None, unit_form=None, status=200):
     context = _context(request, army)
-    form = form or ArmyForm(instance=army, kingdom=army.kingdom)
+    form = form or ArmyForm(instance=army, army=army)
     context.update(
         {
             "form": form,
@@ -63,6 +68,18 @@ def _render_edit(request, army, *, form=None, unit_form=None, status=200):
         }
     )
     return render(request, "kingdoms/army_edit.html", context, status=status)
+
+
+def _render_unit_edit(request, army, unit, form, status=200):
+    context = _context(request, army)
+    context.update(
+        {
+            "unit": unit,
+            "form": form,
+            "form_errors": error_messages(form) if form.is_bound else [],
+        }
+    )
+    return render(request, "kingdoms/unit_edit.html", context, status=status)
 
 
 @require_GET
@@ -96,7 +113,7 @@ def army_edit(request, pk, apk):
     writer, refused = take_lock(request, army, army_url(army))
     if refused:
         return refused
-    form = ArmyForm(request.POST, kingdom=army.kingdom)
+    form = ArmyForm(request.POST, army=army)
     if not form.is_valid():
         return _render_edit(request, army, form=form, status=400)
     services.update_army(army, writer, form.cleaned_data)
@@ -123,26 +140,16 @@ def unit_edit(request, pk, apk, upk):
     if request.method == "GET":
         if not holds_lock(request, army):
             return redirect(army_url(army))
-        form = UnitForm(instance=unit)
-        status = 200
-    else:
-        writer, refused = take_lock(request, army, army_url(army))
-        if refused:
-            return refused
-        form = UnitForm(request.POST)
-        if form.is_valid():
-            services.update_unit(unit, writer, form.cleaned_data)
-            return redirect(army_edit_url(army))
-        status = 400
-    context = _context(request, army)
-    context.update(
-        {
-            "unit": unit,
-            "form": form,
-            "form_errors": error_messages(form) if form.is_bound else [],
-        }
-    )
-    return render(request, "kingdoms/unit_edit.html", context, status=status)
+        return _render_unit_edit(request, army, unit, UnitForm(instance=unit, unit=unit))
+
+    writer, refused = take_lock(request, army, army_url(army))
+    if refused:
+        return refused
+    form = UnitForm(request.POST, unit=unit)
+    if not form.is_valid():
+        return _render_unit_edit(request, army, unit, form, status=400)
+    services.update_unit(unit, writer, form.cleaned_data)
+    return redirect(army_edit_url(army))
 
 
 @require_POST

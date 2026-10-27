@@ -458,6 +458,10 @@ td, th {
   width: 12rem;
 }
 
+.character-roles {
+  margin: 0;
+}
+
 .character-card input[type="text"] {
   width: 100%;
   box-sizing: border-box;

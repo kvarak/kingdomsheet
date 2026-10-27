@@ -108,16 +108,6 @@ class ArmyTests(TestCase):
         self.assertEqual(entry.changes["location"], {"old": "", "new": "Narlmarches"})
         self.assertEqual(entry.changes["garrison"], {"old": None, "new": "Tatzlford"})
 
-    def test_obsolete_combat_fields_are_hidden_and_kept(self):
-        Army.objects.filter(pk=self.army.pk).update(ac=18, tactics="Defensive Tactics")
-        self.client.post(self.start_url)
-        edit_page = self.client.get(self.edit_url)
-        for name in ("ac", "tactics", "healing_potions", "level"):
-            self.assertNotContains(edit_page, f'name="{name}"')
-        self.client.post(self.edit_url, army_post_data(self.army, location="Oleg's"))
-        self.army.refresh_from_db()
-        self.assertEqual((self.army.ac, self.army.tactics), (18, "Defensive Tactics"))
-
     def test_commander_is_one_of_the_kingdoms_characters(self):
         self.client.post(self.start_url)
         amiri = Character.objects.create(kingdom=self.kingdom, name="Amiri", kind="pc")

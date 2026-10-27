@@ -126,23 +126,25 @@ Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2
 
 ## Armies
 
-Armies are rosters of units belonging to the kingdom, each optionally garrisoned in one of its settlements. Battles are played by hand on Roll20 with unit tokens, casualty counters and chat rolls; the app only records units and outcomes. There is no battlefield, combat engine, Roll20 sheet, API script or synchronisation.
+Armies are rosters of units belonging to the kingdom, each optionally garrisoned in one of its settlements. Battles are played by hand on Roll20 with unit tokens, Strength bars and chat rolls, using the campaign's [Kingmaker Warfare](https://dnd.rigo.nu/CampaignRules/12_kingmaker_war.html) house rules (inspired by Strongholds & Followers); the app only records units and outcomes. There is no battlefield, combat engine, Roll20 sheet, API script or synchronisation.
 
 - An army has a name, a garrison settlement (optional), a commander (one of the kingdom's characters), a location and notes. Add or delete armies in the Armies box in kingdom edit mode. An army that someone else is editing cannot be deleted. Deleting a settlement keeps its armies, without a garrison.
 - Editing an army and its units uses the army's own cogwheel and lock, separate from the kingdom's and the settlements'.
-- A unit has a name; ancestry, experience, equipment and unit type as free text; Attack, Defense, Power, Toughness and Morale as whole numbers; a size or casualty die as free text; current and maximum strength; status, traits and notes; and a display order. Every value is typed in. Strength cannot be negative, and current strength cannot be more than maximum.
-- Strongholds & Followers is the intended reference for units, but nothing is checked against it: no statistic is derived, no category list is enforced and no casualty rule is applied.
+- A unit has a name; a quality chosen from militia, trained, veteran or elite (or none, for units such as irregular raiders); ancestry, equipment and unit type as free text; Attack, Defense, Power, Toughness and Morale as whole numbers; a size as free text (such as "about 50 soldiers"); current and maximum Strength; status, traits and notes; and a display order. Every value is typed in; the rules page has the basic unit profiles. Strength cannot be negative, and current Strength cannot be more than maximum.
+- A unit can have one **hero**, one of the kingdom's characters, who gives it +2 Morale. The table and the Roll20 summary show Morale with the hero's +2 included; the unit's own Morale is stored without it. A character can be the army's commander or one unit's hero, not both, and the hero of only one unit in the army. The commander's once-per-round advantage is tracked on Roll20, not in the app.
+- A unit is marked **diminished** while its current Strength is above 0 but no more than half its maximum, rounding down. Diminished and the hero's Morale are the only values the app works out; no other statistic is derived and no category list is enforced.
 - The army page shows a plain-text summary of each unit with a "Copy unit summary" button, for pasting into Roll20 chat. The text is also in a read-only box for copying by hand.
 - The battle log (linked from the Kingdom box) records each battle's name, location, in-game date, opponents, outcome (victory, defeat, draw or withdrawal) and notes. Recording a battle never changes a unit: update current strength and status on the army page afterwards.
 - Every change to armies, units and battles is recorded in the kingdom history.
 - Recruitment, upkeep, recovery, commander bonuses and how armies connect to kingdom skills are not decided yet, so none of them are implemented.
-- The fields of the older Kingmaker army sheet (level, AC, saves, HP, tactics, gear and so on) are hidden but kept with their data until a reviewed migration removes them.
+- The fields of the older Kingmaker army sheet (level, AC, saves, HP, tactics, gear and so on) were removed in migration 0019, deleting any values they held.
 
 ## Characters
 
-Each kingdom has its own list of characters, both player characters (PCs) and NPCs, linked as "Characters" in the Kingdom box. A character has a name, a kind (PC or NPC) and an optional picture. Leader roles on the kingdom sheet are filled by picking a character, or left vacant.
+Each kingdom has its own list of characters, both player characters (PCs) and NPCs, linked as "Characters" in the Kingdom box. A character has a name, a kind (PC or NPC) and an optional picture. Leader roles on the kingdom sheet are filled by picking a character, or left vacant. Up to four filled roles can be marked invested (the Inv column); saving the sheet clears it on vacant roles. Being invested grants nothing automatically.
 
-- Any protected name in the kingdom can add, rename, change, replace the picture of or delete a character. Deleting a character leaves its leader roles vacant.
+- Each character card lists every role the character holds: leader roles, army commands and unit heroes, each linked to its page. Nothing stops a character holding several roles, because different pages can be edited at the same time; the list makes overlaps easy to spot.
+- Any protected name in the kingdom can add, rename, change, replace the picture of or delete a character. Deleting a character leaves its leader roles vacant and uninvested and removes it as army commander or unit hero.
 - Uploads (JPEG, PNG, GIF or WebP, up to 10 MB) are shrunk to at most 512 pixels on the longest side and stored as WebP, which keeps them small on a Raspberry Pi and strips metadata such as GPS positions.
 - Pictures are served by the app to the kingdom's members only. A reverse proxy in front of the app must accept request bodies of at least 10 MB (nginx defaults to 1 MB: set `client_max_body_size 10m;`).
 

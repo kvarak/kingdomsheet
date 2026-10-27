@@ -6,7 +6,7 @@
 {% include "kingdoms/includes/lock_toolbar.html" with save_form="unit-form" save_label="Save unit" %}
 {% endblock %}
 {% block content %}
-<p>Unit of <a href="{% url 'kingdoms:army_edit' kingdom.pk army.pk %}">{{ army.name }}</a>. Every value is recorded by hand; nothing is calculated or checked against a rulebook.</p>
+<p>Unit of <a href="{% url 'kingdoms:army_edit' kingdom.pk army.pk %}">{{ army.name }}</a>. Every value is recorded by hand; see the <a href="{{ rules_url }}">Kingmaker Warfare rules</a> for the basic unit profiles.</p>
 
 {% if form_errors %}
 <div class="error">
@@ -22,8 +22,10 @@
       <fieldset>
         <legend>Unit</legend>
         <label>Name {{ form.name }}</label>
+        <label>Hero {{ form.hero }}</label>
+        <p class="hint">A hero gives the unit +2 Morale in battle. A character can be the army's commander or one unit's hero, not both.</p>
         <label>Ancestry {{ form.ancestry }}</label>
-        <label>Experience {{ form.experience }}</label>
+        <label>Quality {{ form.quality }}</label>
         <label>Equipment {{ form.equipment }}</label>
         <label>Unit type {{ form.unit_type }}</label>
         <label>Display order {{ form.display_order }}</label>
@@ -32,7 +34,7 @@
         <legend>Strength</legend>
         <label>Current strength {{ form.current_strength }}</label>
         <label>Maximum strength {{ form.max_strength }}</label>
-        <label>Size / casualty die {{ form.size }}</label>
+        <label>Size {{ form.size }}</label>
         <label>Status {{ form.status }}</label>
       </fieldset>
     </div>
@@ -44,6 +46,7 @@
         <label>Power {{ form.power }}</label>
         <label>Toughness {{ form.toughness }}</label>
         <label>Morale {{ form.morale }}</label>
+        <p class="hint">Morale without the hero's +2.</p>
       </fieldset>
       <fieldset>
         <legend>Traits</legend>

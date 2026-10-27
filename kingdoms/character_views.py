@@ -1,4 +1,6 @@
-"""Characters: the kingdom's PCs and NPCs, with pictures. They fill the leader roles.
+"""Characters: the kingdom's PCs and NPCs, with pictures. They fill the leader roles, command armies
+and lead units as heroes. The page lists every role each character holds; nothing stops a character
+holding several, since different pages can be edited at the same time.
 
 Any protected name in the kingdom can add, change or delete them. Changes are single saves, so
 characters do not use an edit lock. Pictures are only served to the kingdom's members.
@@ -9,11 +11,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from . import pictures, services
+from . import pictures, rules, services
 from .access import get_remembered_kingdom_or_404
 from .editing import names_redirect
 from .forms import CharacterForm
-from .models import Character
+from .models import Army, Character, KingdomLeader, Unit
 from .names import current_editor, current_writer
 
 
@@ -21,11 +23,31 @@ def _characters_url(pk):
     return reverse("kingdoms:characters", args=[pk])
 
 
+def _roles(kingdom):
+    """Every role in the kingdom by character id, as (label, url) pairs."""
+    roles = {}
+    sheet_url = reverse("kingdoms:sheet", args=[kingdom.pk])
+    leaders = KingdomLeader.objects.filter(kingdom=kingdom, character__isnull=False)
+    order = [key for key, _, _ in rules.LEADERSHIP_ROLES]
+    for leader in sorted(leaders, key=lambda leader: order.index(leader.role)):
+        roles.setdefault(leader.character_id, []).append((str(leader), sheet_url))
+    for army in Army.objects.filter(kingdom=kingdom, commander__isnull=False):
+        url = reverse("kingdoms:army", args=[kingdom.pk, army.pk])
+        roles.setdefault(army.commander_id, []).append((f"Commander of {army}", url))
+    heroes = Unit.objects.filter(army__kingdom=kingdom, hero__isnull=False).select_related("army")
+    for unit in heroes:
+        url = reverse("kingdoms:army", args=[kingdom.pk, unit.army_id])
+        roles.setdefault(unit.hero_id, []).append((f"Hero of {unit} ({unit.army})", url))
+    return roles
+
+
 def _render(request, kingdom, *, add_form=None, edit_forms=None, status=200):
     edit_forms = edit_forms or {}
+    roles = _roles(kingdom)
     characters = [
         (
             character,
+            roles.get(character.pk, []),
             edit_forms.get(character.pk)
             or CharacterForm(
                 initial={"name": character.name, "kind": character.kind},

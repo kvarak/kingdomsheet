@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.models import fields_for_model
 
-from . import growth, pictures
+from . import growth, pictures, rules
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
 from .models import Army, Battle, Character, Kingdom, Placement, Settlement, Unit
@@ -42,6 +42,23 @@ class SheetForm(forms.Form):
             field.queryset = characters
             field.empty_label = "Vacant"
         _join_form(self)
+
+    def clean(self):
+        data = super().clean()
+        invested = []
+        for key in LEADER_ROWS.keys:
+            invested_name = LEADER_ROWS.field_name(key, "invested")
+            if data.get(LEADER_ROWS.field_name(key, "character")) is None:
+                # A vacant role cannot be invested.
+                data[invested_name] = False
+            elif data.get(invested_name):
+                invested.append(rules.ROLE_LABELS[key])
+        if len(invested) > rules.MAX_INVESTED_LEADERS:
+            raise forms.ValidationError(
+                f"At most {rules.MAX_INVESTED_LEADERS} leaders can be invested, "
+                f"not {len(invested)} ({', '.join(invested)})."
+            )
+        return data
 
 
 class NewSettlementForm(forms.Form):
@@ -118,13 +135,23 @@ class ArmyForm(forms.ModelForm):
         fields = Army.ROSTER_FIELDS
         widgets = {"notes": forms.Textarea(attrs={"rows": 4})}
 
-    def __init__(self, *args, kingdom, **kwargs):
+    def __init__(self, *args, army, **kwargs):
         super().__init__(*args, **kwargs)
+        self.army = army
         # Commanders and garrisons may only come from this kingdom.
-        self.fields["commander"].queryset = Character.objects.filter(kingdom=kingdom)
+        self.fields["commander"].queryset = Character.objects.filter(kingdom=army.kingdom)
         self.fields["commander"].empty_label = "None"
-        self.fields["garrison"].queryset = Settlement.objects.filter(kingdom=kingdom)
+        self.fields["garrison"].queryset = Settlement.objects.filter(kingdom=army.kingdom)
         self.fields["garrison"].empty_label = "None"
+
+    def clean_commander(self):
+        commander = self.cleaned_data["commander"]
+        led = commander and self.army.units.filter(hero=commander).first()
+        if led:
+            raise forms.ValidationError(
+                f"{commander} is the hero of {led}. A character can fill only one role."
+            )
+        return commander
 
 
 class NewUnitForm(forms.Form):
@@ -141,6 +168,28 @@ class UnitForm(forms.ModelForm):
             "traits": forms.Textarea(attrs={"rows": 3}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
+
+    def __init__(self, *args, unit, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.unit = unit
+        self.fields["quality"].choices = [("", "-"), *Unit.Quality.choices]
+        self.fields["hero"].queryset = Character.objects.filter(kingdom=unit.army.kingdom)
+        self.fields["hero"].empty_label = "None"
+
+    def clean_hero(self):
+        """A character fills only one role in an army: its commander or one unit's hero."""
+        hero = self.cleaned_data["hero"]
+        if hero is None:
+            return hero
+        army = self.unit.army
+        if hero.pk == army.commander_id:
+            raise forms.ValidationError(
+                f"{hero} commands this army. A character can fill only one role."
+            )
+        other = army.units.filter(hero=hero).exclude(pk=self.unit.pk).first()
+        if other:
+            raise forms.ValidationError(f"{hero} is already the hero of {other}.")
+        return hero
 
     def clean(self):
         data = super().clean()

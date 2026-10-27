@@ -8,6 +8,7 @@ from .models import (
     Character,
     HistoryEntry,
     Kingdom,
+    KingdomLeader,
     Placement,
     Settlement,
     Statistic,
@@ -88,16 +89,14 @@ def add_settlement(kingdom, writer, values):
 
 
 def update_settlement(settlement, writer, values):
-    with transaction.atomic():
-        changes = _labelled(_apply_changes(settlement, SETTLEMENT_FIELDS, values))
-        if changes:
-            _record_and_touch(
-                settlement.kingdom,
-                writer,
-                HistoryEntry.Action.SETTLEMENT_EDITED,
-                changes,
-                settlement,
-            )
+    _update(
+        settlement,
+        settlement.kingdom,
+        SETTLEMENT_FIELDS,
+        values,
+        writer,
+        HistoryEntry.Action.SETTLEMENT_EDITED,
+    )
 
 
 def delete_settlement(settlement, writer):
@@ -159,10 +158,7 @@ def add_army(kingdom, writer, name):
 
 
 def update_army(army, writer, values):
-    with transaction.atomic():
-        changes = _labelled(_apply_changes(army, Army.ROSTER_FIELDS, values))
-        if changes:
-            _record_and_touch(army.kingdom, writer, HistoryEntry.Action.ARMY_EDITED, changes, army)
+    _update(army, army.kingdom, Army.ROSTER_FIELDS, values, writer, HistoryEntry.Action.ARMY_EDITED)
 
 
 def delete_army(army, writer):
@@ -182,12 +178,7 @@ def add_unit(army, writer, name):
 
 
 def update_unit(unit, writer, values):
-    with transaction.atomic():
-        changes = _labelled(_apply_changes(unit, Unit.FIELDS, values))
-        if changes:
-            _record_and_touch(
-                unit.army.kingdom, writer, HistoryEntry.Action.UNIT_EDITED, changes, unit
-            )
+    _update(unit, unit.army.kingdom, Unit.FIELDS, values, writer, HistoryEntry.Action.UNIT_EDITED)
 
 
 def delete_unit(unit, writer):
@@ -208,12 +199,9 @@ def record_battle(kingdom, writer, values):
 
 
 def update_battle(battle, writer, values):
-    with transaction.atomic():
-        changes = _labelled(_apply_changes(battle, Battle.FIELDS, values))
-        if changes:
-            _record_and_touch(
-                battle.kingdom, writer, HistoryEntry.Action.BATTLE_EDITED, changes, battle
-            )
+    _update(
+        battle, battle.kingdom, Battle.FIELDS, values, writer, HistoryEntry.Action.BATTLE_EDITED
+    )
 
 
 def delete_battle(battle, writer):
@@ -263,6 +251,8 @@ def update_character(character, writer, name, kind, picture):
 def delete_character(character, writer):
     with transaction.atomic():
         _delete_file_after_commit(character.picture)
+        # The roles they filled become vacant, and a vacant role cannot be invested.
+        KingdomLeader.objects.filter(character=character).update(invested=False)
         changes = _deleted({"name": character.name, "kind": character.get_kind_display()})
         _record_and_touch(
             character.kingdom, writer, HistoryEntry.Action.CHARACTER_DELETED, changes, character
@@ -292,6 +282,14 @@ def _regrow(settlement, new_type, counts):
 
 def _where(placement):
     return {"block": placement.block + 1, "lot": LOT_NAMES[placement.lot].lower()}
+
+
+def _update(instance, kingdom, fields, values, writer, action):
+    """Save the changed fields of one row and record them in the kingdom history, if any changed."""
+    with transaction.atomic():
+        changes = _labelled(_apply_changes(instance, fields, values))
+        if changes:
+            _record_and_touch(kingdom, writer, action, changes, instance)
 
 
 def _apply_changes(instance, fields, values):

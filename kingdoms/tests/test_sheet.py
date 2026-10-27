@@ -154,6 +154,39 @@ class KingdomSheetTests(TestCase):
         self.client.post(self.edit_url, sheet_post_data(self.kingdom, ruler_invested=False))
         self.assertFalse(self.kingdom.leaders.get(role="ruler").invested)
 
+    def test_a_vacant_role_is_saved_uninvested(self):
+        self.client.post(self.edit_url, sheet_post_data(self.kingdom, ruler_invested=True))
+        self.assertFalse(self.kingdom.leaders.get(role="ruler").invested)
+
+    def test_at_most_four_leaders_are_invested(self):
+        roles = ["ruler", "counselor", "general", "emissary", "magister"]
+        values = {}
+        for role in roles:
+            values[f"{role}_character"] = Character.objects.create(
+                kingdom=self.kingdom, name=role.title(), kind="npc"
+            )
+            values[f"{role}_invested"] = True
+        response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, **values))
+        self.assertContains(
+            response,
+            "At most 4 leaders can be invested, not 5 (Ruler, Counselor, General, Emissary, "
+            "Magister).",
+            status_code=400,
+        )
+        self.assertFalse(self.kingdom.leaders.filter(invested=True).exists())
+
+        values["magister_invested"] = False
+        response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, **values))
+        self.assertRedirects(response, self.edit_url)
+        self.assertEqual(self.kingdom.leaders.filter(invested=True).count(), 4)
+
+    def test_deleting_a_character_uninvests_their_roles(self):
+        kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="pc")
+        self.kingdom.leaders.filter(role="ruler").update(character=kesten, invested=True)
+        self.client.post(reverse("kingdoms:character_delete", args=[self.kingdom.pk, kesten.pk]))
+        leader = self.kingdom.leaders.get(role="ruler")
+        self.assertEqual((leader.character, leader.invested), (None, False))
+
     def test_invalid_rank_is_rejected(self):
         response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, trade_rank=9))
         self.assertContains(response, "Trade rank:", status_code=400)

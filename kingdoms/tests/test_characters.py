@@ -9,7 +9,7 @@ from django.urls import reverse
 from PIL import Image
 
 from .. import pictures
-from ..models import Character, HistoryEntry, Kingdom
+from ..models import Army, Character, HistoryEntry, Kingdom, KingdomLeader, Unit
 from .helpers import PASSWORD, PLAYER_NAME, sheet_post_data
 
 
@@ -74,6 +74,26 @@ class CharacterTests(TestCase):
         return (client or self.client).post(
             reverse("kingdoms:character_add", args=[self.kingdom.pk]), data
         )
+
+    def test_characters_list_every_role_they_hold(self):
+        kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="npc")
+        Character.objects.create(kingdom=self.kingdom, name="Amiri", kind="pc")
+        KingdomLeader.objects.filter(kingdom=self.kingdom, role__in=["general", "ruler"]).update(
+            character=kesten
+        )
+        army = Army.objects.create(kingdom=self.kingdom, name="Ravagers", commander=kesten)
+        Unit.objects.create(army=army, name="Pikes", hero=kesten)
+        page = self.client.get(self.characters_url).content.decode()
+        army_url = reverse("kingdoms:army", args=[self.kingdom.pk, army.pk])
+        roles = [
+            '<a href="{}">Ruler</a>'.format(reverse("kingdoms:sheet", args=[self.kingdom.pk])),
+            ">General</a>",
+            f'<a href="{army_url}">Commander of Ravagers</a>',
+            f'<a href="{army_url}">Hero of Pikes (Ravagers)</a>',
+        ]
+        positions = [page.index(role) for role in roles]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(page.count("No roles"), 1)
 
     def test_add_character_with_picture_served_to_members_only(self):
         self.assertRedirects(self.add_character(), self.characters_url)

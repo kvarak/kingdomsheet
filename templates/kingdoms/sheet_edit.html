@@ -81,8 +81,9 @@
     <fieldset>
       <legend>Leaders</legend>
       <p class="hint">Pick a PC or NPC from the kingdom's characters. <a href="{% url 'kingdoms:characters' kingdom.pk %}">Manage characters</a></p>
+      <p class="hint">Inv: up to {{ sheet.max_invested }} filled roles can be invested. Saving clears it on vacant roles.</p>
       <table>
-        <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
+        <thead><tr><th title="Invested">Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
           <tr><td>{{ leader.invested }}</td><td>{{ leader.label }} <span class="info" tabindex="0" title="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}." aria-label="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}.">&#9432;</span></td><td>{{ leader.character }}</td></tr>

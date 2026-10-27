@@ -2,7 +2,7 @@
 {% block title %}Characters: {{ kingdom.name }}{% endblock %}
 {% block heading %}Characters{% endblock %}
 {% block content %}
-<p>Player characters and NPCs of <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a>. Characters fill the leader roles on the kingdom sheet.</p>
+<p>Player characters and NPCs of <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a>. Characters fill the leader roles on the kingdom sheet, command armies and lead units as heroes.</p>
 {% if not writer.verified %}
 <p class="hint"><a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:characters' kingdom.pk %}">Choose a protected name</a> to add or change characters.</p>
 {% endif %}
@@ -22,7 +22,7 @@
     <fieldset>
       <legend>Characters</legend>
       <div class="character-cards">
-        {% for character, form in characters %}
+        {% for character, roles, form in characters %}
         <div class="character-card">
           {% if character.picture %}
           <img class="character-picture" src="{% url 'kingdoms:character_picture' kingdom.pk character.pk %}" alt="{{ character.name }}" loading="lazy">
@@ -30,6 +30,7 @@
           <div class="character-picture character-no-picture">No picture</div>
           {% endif %}
           <strong>{{ character.name }}</strong> <span class="hint">{{ character.get_kind_display }}</span>
+          <p class="character-roles">{% for label, url in roles %}<a href="{{ url }}">{{ label }}</a>{% if not forloop.last %}<br>{% endif %}{% empty %}<span class="hint">No roles</span>{% endfor %}</p>
           {% if writer.verified %}
           <form method="post" action="{% url 'kingdoms:character_edit' kingdom.pk character.pk %}" enctype="multipart/form-data">
             {% csrf_token %}
@@ -41,7 +42,7 @@
           </form>
           <form method="post" action="{% url 'kingdoms:character_delete' kingdom.pk character.pk %}">
             {% csrf_token %}
-            <button type="submit" title="Delete {{ character.name }}. Leader roles they fill become vacant.">Delete</button>
+            <button type="submit" title="Delete {{ character.name }}. Their leader roles become vacant and their armies and units lose them as commander or hero.">Delete</button>
           </form>
           {% endif %}
         </div>

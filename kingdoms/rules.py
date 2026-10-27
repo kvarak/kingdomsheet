@@ -54,6 +54,8 @@ LEADERSHIP_ROLES = [
     ("warden", "Warden", "stability"),
 ]
 ROLE_LABELS = {key: label for key, label, _ in LEADERSHIP_ROLES}
+# At most this many leaders can be invested, and only roles a character fills.
+MAX_INVESTED_LEADERS = 4
 
 # What each role costs while it is vacant (no character fills it). The -4 penalties of the
 # Pathfinder rules are disadvantage in Varlyn.
