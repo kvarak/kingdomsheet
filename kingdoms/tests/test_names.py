@@ -12,6 +12,13 @@ class NameSelectionTests(TestCase):
             data["action"] = action
         return client.post(reverse("kingdoms:names"), data)
 
+    def test_top_bar_shows_the_selected_name(self):
+        client = self.client_class()
+        names_link = f'<a href="{reverse("kingdoms:names")}">'
+        self.assertContains(client.get(reverse("kingdoms:home")), f"{names_link}Your name</a>")
+        self.post_name(client, PLAYER_NAME, PASSWORD)
+        self.assertContains(client.get(reverse("kingdoms:home")), f"{names_link}{PLAYER_NAME}</a>")
+
     def test_open_name_cannot_create_kingdom(self):
         client = self.client_class()
         self.post_name(client, PLAYER_NAME)

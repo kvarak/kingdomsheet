@@ -8,11 +8,12 @@
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
 </head>
 <body>
+  <nav class="top-bar"><div class="top-bar-inner"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a></div></nav>
+  <div class="page">
   <div class="title-bar">
     <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
     <div class="toolbar">{% block toolbar %}{% endblock %}</div>
   </div>
-  <p class="hint"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">Name</a></p>
 
   {% if messages %}
   <ul class="messages">{% for message in messages %}<li class="error">{{ message }}</li>{% endfor %}</ul>
@@ -22,5 +23,6 @@
 
   {% block footer %}{% endblock %}
   <p class="hint">Your name and kingdom list are remembered with a session cookie in this browser.</p>
+  </div>
 </body>
 </html>

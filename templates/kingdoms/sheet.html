@@ -29,7 +29,7 @@
         <span class="hint">Resource dice</span> {{ kingdom.resource_dice|default:"-" }} &middot;
         <span class="hint">Bonus dice</span> {{ kingdom.bonus_dice }}
       </p>
-      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a></p>
+      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a> &middot; <a href="{% url 'kingdoms:history' kingdom.pk %}">Kingdom changes</a></p>
     </div>
     <div class="col-half">
       <p class="hint">Description</p>

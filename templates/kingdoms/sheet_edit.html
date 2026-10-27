@@ -36,7 +36,7 @@
       <label>{{ form.renown }} {{ form.fame }} <span class="hint">max</span> {{ form.fame_max }}</label>
       <label>Resource dice {{ form.resource_dice }}</label>
       <label>Bonus dice {{ form.bonus_dice }}</label>
-      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a></p>
+      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a> &middot; <a href="{% url 'kingdoms:history' kingdom.pk %}">Kingdom changes</a></p>
     </div>
     <div class="col-half">
       <label for="{{ form.description.id_for_label }}">Description</label>

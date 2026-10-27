@@ -1,10 +1,29 @@
 /* Layout and look follow kvarak/fh-items. */
 body {
   font-family: system-ui, sans-serif;
-  max-width: 80rem;
-  margin: 2rem auto;
+  margin: 0;
   line-height: 1.5;
+}
+
+.page {
+  max-width: 80rem;
+  margin: 1.5rem auto 2rem;
   padding: 0 1rem;
+}
+
+.top-bar {
+  background: #000;
+  color: #fff;
+}
+
+.top-bar-inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0.4rem 1rem;
+}
+
+.top-bar a {
+  color: #fff;
 }
 
 fieldset {
@@ -446,16 +465,67 @@ td, th {
 }
 
 .character-cards {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+}
+
+@media (max-width: 60rem) {
+  .character-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .character-card {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  width: 12rem;
+  min-width: 0;
+}
+
+.character-form,
+.card-actions {
+  font-size: 0.8rem;
+}
+
+.character-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: #f4f4f4;
+  border-radius: 0.25rem;
+}
+
+.character-form label {
+  display: block;
+  margin: 0;
+}
+
+.character-form input[type="file"] {
+  max-width: 100%;
+  font-size: 0.75rem;
+}
+
+.kind-choices > div {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.kind-choices label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.card-actions button {
+  font-size: 0.8rem;
 }
 
 .character-roles {
@@ -468,8 +538,9 @@ td, th {
 }
 
 .character-picture {
-  width: 12rem;
-  height: 12rem;
+  width: 100%;
+  aspect-ratio: 1;
+  height: auto;
   object-fit: cover;
   border-radius: 0.25rem;
   background: #eee;

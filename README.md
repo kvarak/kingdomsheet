@@ -1,6 +1,6 @@
 # Kingdom Sheet
 
-A small Django app for tracking kingdoms in a Kingmaker campaign played with the Varlyn 5e rules (dnd.rigo.nu). Players create a kingdom, share its access code and edit its kingdom sheet. Every change is recorded in a history log.
+A small Django app for tracking kingdoms in a Kingmaker campaign played with the Varlyn 5e rules (dnd.rigo.nu). Players create a kingdom, share its access code and edit its kingdom sheet. Every change is recorded in a history log, linked as "Kingdom changes" in the Kingdom box.
 
 ## The sheet
 

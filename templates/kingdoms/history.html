@@ -1,6 +1,6 @@
 {% extends "kingdoms/base.html" %}
-{% block title %}History: {{ kingdom.name }}{% endblock %}
-{% block heading %}History: {{ kingdom.name }}{% endblock %}
+{% block title %}Kingdom changes: {{ kingdom.name }}{% endblock %}
+{% block heading %}Kingdom changes: {{ kingdom.name }}{% endblock %}
 {% block content %}
 <p><a href="{% url 'kingdoms:sheet' kingdom.pk %}">Back to sheet</a></p>
 <p class="hint">Deleted settlements, armies, units and characters can be restored from their latest "deleted" entry{% if not writer.verified %} by a <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:history' kingdom.pk %}">protected name</a>{% endif %}. Links they lost, such as a garrison or leader role, come back only where nobody has filled them since.</p>
