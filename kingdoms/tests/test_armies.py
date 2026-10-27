@@ -7,7 +7,7 @@ from .helpers import PASSWORD, PLAYER_NAME
 
 def army_post_data(army, **overrides):
     """A full army sheet POST, sending IDs for linked rows and blanks for empty ones."""
-    values = {**{field: getattr(army, field) for field in Army.SHEET_FIELDS}, **overrides}
+    values = {**{field: getattr(army, field) for field in Army.ROSTER_FIELDS}, **overrides}
     return {
         name: "" if value is None else getattr(value, "pk", value) for name, value in values.items()
     }
@@ -28,15 +28,12 @@ class ArmyTests(TestCase):
             {"name": "Tatzlford", "settlement_type": "village"},
         )
         self.settlement = Settlement.objects.get(name="Tatzlford")
-        settlement_args = [self.kingdom.pk, self.settlement.pk]
-        self.settlement_start = reverse("kingdoms:settlement_edit_start", args=settlement_args)
-        self.settlement_stop = reverse("kingdoms:settlement_edit_stop", args=settlement_args)
-        self.client.post(self.settlement_start)
+        # Creating the kingdom gave Alice its edit lock, which adding armies needs.
         self.client.post(
-            reverse("kingdoms:army_add", args=settlement_args), {"name": "Tatzlford Militia"}
+            reverse("kingdoms:army_add", args=[self.kingdom.pk]), {"name": "Tatzlford Militia"}
         )
         self.army = Army.objects.get(name="Tatzlford Militia")
-        args = [*settlement_args, self.army.pk]
+        args = [self.kingdom.pk, self.army.pk]
         self.view_url = reverse("kingdoms:army", args=args)
         self.edit_url = reverse("kingdoms:army_edit", args=args)
         self.start_url = reverse("kingdoms:army_edit_start", args=args)
@@ -48,65 +45,78 @@ class ArmyTests(TestCase):
             reverse("kingdoms:names"), {"display_name": "Bob", "password": PASSWORD, "next": "/"}
         )
 
-    def test_adding_an_army_needs_the_settlement_lock(self):
+    def test_armies_belong_to_the_kingdom_without_a_garrison(self):
+        self.assertEqual((self.army.kingdom, self.army.garrison), (self.kingdom, None))
+
+    def test_adding_an_army_needs_the_kingdom_lock(self):
         response = self.bob.post(
-            reverse("kingdoms:army_add", args=[self.kingdom.pk, self.settlement.pk]),
-            {"name": "Bob's Band"},
+            reverse("kingdoms:army_add", args=[self.kingdom.pk]), {"name": "Bob's Band"}
         )
-        self.assertContains(self.bob.get(response.url), f"{PLAYER_NAME} is editing Tatzlford")
+        self.assertContains(self.bob.get(response.url), f"{PLAYER_NAME} is editing Stolen Lands")
         self.assertFalse(Army.objects.filter(name="Bob's Band").exists())
         self.assertTrue(self.kingdom.history.filter(action=HistoryEntry.Action.ARMY_ADDED).exists())
 
-    def test_settlement_page_lists_its_armies(self):
+    def test_settlement_page_lists_its_garrisoned_armies(self):
+        Army.objects.filter(pk=self.army.pk).update(garrison=self.settlement)
         response = self.client.get(
             reverse("kingdoms:settlement", args=[self.kingdom.pk, self.settlement.pk])
         )
         self.assertContains(response, self.view_url)
         self.assertContains(response, "Tatzlford Militia")
 
-    def test_kingdom_page_lists_armies_with_levels(self):
-        Army.objects.filter(pk=self.army.pk).update(level=4)
+    def test_kingdom_page_has_its_own_armies_box(self):
+        self.army.units.create(name="Pikes")
+        Army.objects.filter(pk=self.army.pk).update(garrison=self.settlement)
         for name in ("kingdoms:sheet", "kingdoms:edit"):
-            response = self.client.get(reverse(name, args=[self.kingdom.pk]))
-            self.assertContains(response, self.view_url)
-            self.assertContains(response, 'Tatzlford Militia</a> <span class="hint">level 4</span>')
+            page = self.client.get(reverse(name, args=[self.kingdom.pk])).content.decode()
+            armies_box = page.split("<legend>Armies</legend>")[1].split("</fieldset>")[0]
+            self.assertIn(f'<a href="{self.view_url}">Tatzlford Militia</a>', armies_box)
+            self.assertIn("<td>1</td>", armies_box)
+            self.assertIn(">Tatzlford</a>", armies_box)
+            # The settlement cards no longer list armies.
+            settlements_box = page.split("<legend>Settlements</legend>")[1].split("</fieldset>")[0]
+            self.assertNotIn("Tatzlford Militia", settlements_box)
 
     def test_army_page_is_read_only_until_editing(self):
         response = self.client.get(self.view_url)
         self.assertContains(response, 'aria-label="Edit army"')
-        self.assertNotContains(response, 'name="armor_bonus"')
+        self.assertNotContains(response, 'name="location"')
         self.assertRedirects(self.client.get(self.edit_url), self.view_url)
 
-    def test_army_lock_is_separate_from_the_settlement_lock(self):
-        # Alice holds the settlement lock, yet Bob may edit the army.
+    def test_army_lock_is_separate_from_the_kingdom_lock(self):
+        # Alice holds the kingdom lock, yet Bob may edit the army.
         self.assertRedirects(self.bob.post(self.start_url), self.edit_url)
         response = self.client.post(self.start_url, follow=True)
         self.assertContains(response, "Bob is editing Tatzlford Militia")
 
-    def test_saving_the_army_sheet(self):
+    def test_saving_the_roster_details(self):
         self.client.post(self.start_url)
         response = self.client.post(
             self.edit_url,
             army_post_data(
-                self.army,
-                level=3,
-                armor_bonus=2,
-                hp=4,
-                current_hp=3,
-                tactics="Defensive Tactics\nLive off the Land",
-                healing_potions=2,
+                self.army, garrison=self.settlement, location="Narlmarches", notes="Marching north"
             ),
         )
         self.assertRedirects(response, self.edit_url)
         self.army.refresh_from_db()
-        self.assertEqual((self.army.level, self.army.armor_bonus, self.army.current_hp), (3, 2, 3))
+        self.assertEqual((self.army.location, self.army.notes), ("Narlmarches", "Marching north"))
+        self.assertEqual(self.army.garrison, self.settlement)
         page = self.client.get(self.view_url)
-        self.assertContains(page, "<li>Live off the Land</li>", html=True)
+        self.assertContains(page, "Narlmarches")
         entry = self.kingdom.history.get(action=HistoryEntry.Action.ARMY_EDITED)
         self.assertEqual(entry.subject_label, "Tatzlford Militia")
-        self.assertEqual(entry.changes["armor bonus"], {"old": 0, "new": 2})
-        # AC = 11 + proficiency (+2 at level 3) + armor bonus 2.
-        self.assertContains(page, '<strong class="calc">15</strong>')
+        self.assertEqual(entry.changes["location"], {"old": "", "new": "Narlmarches"})
+        self.assertEqual(entry.changes["garrison"], {"old": None, "new": "Tatzlford"})
+
+    def test_obsolete_combat_fields_are_hidden_and_kept(self):
+        Army.objects.filter(pk=self.army.pk).update(ac=18, tactics="Defensive Tactics")
+        self.client.post(self.start_url)
+        edit_page = self.client.get(self.edit_url)
+        for name in ("ac", "tactics", "healing_potions", "level"):
+            self.assertNotContains(edit_page, f'name="{name}"')
+        self.client.post(self.edit_url, army_post_data(self.army, location="Oleg's"))
+        self.army.refresh_from_db()
+        self.assertEqual((self.army.ac, self.army.tactics), (18, "Defensive Tactics"))
 
     def test_commander_is_one_of_the_kingdoms_characters(self):
         self.client.post(self.start_url)
@@ -120,6 +130,9 @@ class ArmyTests(TestCase):
         stranger = Character.objects.create(kingdom=other, name="Spy", kind="npc")
         response = self.client.post(self.edit_url, army_post_data(self.army, commander=stranger))
         self.assertContains(response, "Commander:", status_code=400)
+        far_town = Settlement.objects.create(kingdom=other, name="Far Town")
+        response = self.client.post(self.edit_url, army_post_data(self.army, garrison=far_town))
+        self.assertContains(response, "Garrison:", status_code=400)
 
     def test_save_button_sits_in_the_toolbar(self):
         self.client.post(self.start_url)
@@ -127,18 +140,11 @@ class ArmyTests(TestCase):
         self.assertContains(response, 'form="army-form">Save army</button>', count=1)
         self.assertContains(response, '<form id="army-form"')
 
-    def test_healing_potions_are_capped(self):
-        self.client.post(self.start_url)
-        response = self.client.post(self.edit_url, army_post_data(self.army, healing_potions=4))
-        self.assertContains(response, "Healing potions:", status_code=400)
-        self.army.refresh_from_db()
-        self.assertEqual(self.army.healing_potions, 0)
-
     def test_editing_without_the_lock_changes_nothing(self):
         self.client.post(self.start_url)
-        self.bob.post(self.edit_url, army_post_data(self.army, armor_bonus=9))
+        self.bob.post(self.edit_url, army_post_data(self.army, location="Bob's camp"))
         self.army.refresh_from_db()
-        self.assertEqual(self.army.armor_bonus, 0)
+        self.assertEqual(self.army.location, "")
 
     def test_army_being_edited_by_someone_else_cannot_be_deleted(self):
         self.bob.post(self.start_url)
@@ -146,24 +152,22 @@ class ArmyTests(TestCase):
         self.assertContains(response, "Bob is editing Tatzlford Militia")
         self.assertTrue(Army.objects.filter(pk=self.army.pk).exists())
 
-        self.bob.post(
-            reverse(
-                "kingdoms:army_edit_stop",
-                args=[self.kingdom.pk, self.settlement.pk, self.army.pk],
-            )
-        )
+        self.bob.post(reverse("kingdoms:army_edit_stop", args=[self.kingdom.pk, self.army.pk]))
         self.client.post(self.delete_url)
         self.assertFalse(Army.objects.filter(pk=self.army.pk).exists())
 
-    def test_settlement_with_army_in_use_cannot_be_deleted(self):
-        self.bob.post(self.start_url)
-        self.client.post(self.settlement_stop)
-        delete_url = reverse(
-            "kingdoms:settlement_delete", args=[self.kingdom.pk, self.settlement.pk]
+    def test_deleting_the_garrison_keeps_the_army(self):
+        Army.objects.filter(pk=self.army.pk).update(garrison=self.settlement)
+        self.army.units.create(name="Pikes")
+        self.client.post(
+            reverse("kingdoms:settlement_delete", args=[self.kingdom.pk, self.settlement.pk])
         )
-        response = self.client.post(delete_url, follow=True)
-        self.assertContains(response, "Bob is editing Tatzlford Militia")
-        self.assertTrue(Settlement.objects.filter(pk=self.settlement.pk).exists())
+        self.assertFalse(Settlement.objects.filter(pk=self.settlement.pk).exists())
+        self.army.refresh_from_db()
+        self.assertIsNone(self.army.garrison)
+        self.assertEqual(self.army.units.count(), 1)
+        entry = self.kingdom.history.get(action=HistoryEntry.Action.SETTLEMENT_DELETED)
+        self.assertEqual(entry.changes["garrisoned armies"]["old"], ["Tatzlford Militia"])
 
     def test_nonmembers_cannot_see_or_change_armies(self):
         outsider = self.client_class()

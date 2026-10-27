@@ -42,14 +42,6 @@ class VarlynArithmeticTests(SimpleTestCase):
         self.assertEqual(rules.kingdom_dc(5), 15)
         self.assertEqual(rules.kingdom_dc(5, "very hard"), 20)
 
-    def test_army_numbers(self):
-        numbers = rules.army_numbers(level=5, armor_bonus=1, scouting=2, maneuver=1, morale=0)
-        self.assertEqual(numbers["ac"], 11 + 3 + 1)
-        self.assertEqual(numbers["attack"], 6)
-        self.assertEqual((numbers["scouting"], numbers["scouting_dc"]), (5, 13))
-        self.assertEqual((numbers["morale"], numbers["morale_dc"]), (3, 11))
-        self.assertEqual(numbers["recruitment_dc"], 15)
-
 
 class VacancyTests(SimpleTestCase):
     def test_vacant_ruler_costs_every_skill_and_stacks(self):

@@ -1,0 +1,50 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}Battle log: {{ kingdom.name }}{% endblock %}
+{% block heading %}Battle log{% endblock %}
+{% block content %}
+<p>Battles of <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a>, played by hand on Roll20. Recording a battle does not change any unit: update unit strength and status on the army pages.</p>
+{% if not writer.verified %}
+<p class="hint"><a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:battles' kingdom.pk %}">Choose a protected name</a> to record or change battles.</p>
+{% endif %}
+
+<div class="page-columns">
+  <div class="col-left">
+    <fieldset>
+      <legend>Record a battle</legend>
+      <form method="post" action="{% url 'kingdoms:battle_add' kingdom.pk %}">
+        {% csrf_token %}
+        {{ add_form.as_p }}
+        <button type="submit">Record battle</button>
+      </form>
+    </fieldset>
+  </div>
+  <div class="col-right">
+    <fieldset>
+      <legend>Battles</legend>
+      {% for battle, form in battles %}
+      <div class="battle">
+        <p><strong>{{ battle.name }}</strong> <span class="hint">{{ battle.get_outcome_display }}{% if battle.date %}, {{ battle.date }}{% endif %}{% if battle.location %}, {{ battle.location }}{% endif %}</span></p>
+        {% if battle.opponents %}<p><span class="hint">Opponents</span> {{ battle.opponents|linebreaksbr }}</p>{% endif %}
+        {% if battle.notes %}<p>{{ battle.notes|linebreaksbr }}</p>{% endif %}
+        {% if writer.verified %}
+        <details{% if form.errors %} open{% endif %}>
+          <summary>Change</summary>
+          <form method="post" action="{% url 'kingdoms:battle_edit' kingdom.pk battle.pk %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save battle</button>
+          </form>
+          <form method="post" action="{% url 'kingdoms:battle_delete' kingdom.pk battle.pk %}">
+            {% csrf_token %}
+            <button type="submit">Delete battle</button>
+          </form>
+        </details>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p>No battles recorded yet.</p>
+      {% endfor %}
+    </fieldset>
+  </div>
+</div>
+{% endblock %}

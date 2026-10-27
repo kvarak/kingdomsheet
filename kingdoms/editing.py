@@ -27,13 +27,11 @@ def settlement_edit_url(settlement):
 
 
 def army_url(army):
-    settlement = army.settlement
-    return reverse("kingdoms:army", args=[settlement.kingdom_id, settlement.pk, army.pk])
+    return reverse("kingdoms:army", args=[army.kingdom_id, army.pk])
 
 
 def army_edit_url(army):
-    settlement = army.settlement
-    return reverse("kingdoms:army_edit", args=[settlement.kingdom_id, settlement.pk, army.pk])
+    return reverse("kingdoms:army_edit", args=[army.kingdom_id, army.pk])
 
 
 def names_redirect(next_url):

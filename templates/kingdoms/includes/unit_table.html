@@ -1,0 +1,31 @@
+{% comment %}The army's units as a table. Needs units (unit, summary) pairs; `editing` adds Edit and Delete.{% endcomment %}
+<table>
+  <thead>
+    <tr><th>Unit</th><th>Attack</th><th>Defense</th><th>Power</th><th>Toughness</th><th>Morale</th><th>Strength</th><th>Status</th>{% if editing %}<th></th>{% endif %}</tr>
+  </thead>
+  <tbody>
+    {% for unit, summary in units %}
+    <tr>
+      <td><strong>{{ unit.name }}</strong>{% if unit.unit_type or unit.experience %} <span class="hint">{{ unit.experience }} {{ unit.unit_type }}</span>{% endif %}</td>
+      <td>{{ unit.attack }}</td>
+      <td>{{ unit.defense }}</td>
+      <td>{{ unit.power }}</td>
+      <td>{{ unit.toughness }}</td>
+      <td>{{ unit.morale }}</td>
+      <td>{{ unit.current_strength }}/{{ unit.max_strength }}{% if unit.size %} <span class="hint">{{ unit.size }}</span>{% endif %}</td>
+      <td>{{ unit.status|default:"-" }}</td>
+      {% if editing %}
+      <td>
+        <a href="{% url 'kingdoms:unit_edit' kingdom.pk army.pk unit.pk %}">Edit</a>
+        <form method="post" action="{% url 'kingdoms:unit_delete' kingdom.pk army.pk unit.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" title="Delete {{ unit.name }}">Delete</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="{% if editing %}9{% else %}8{% endif %}">No units yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>

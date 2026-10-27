@@ -37,23 +37,11 @@
     <fieldset>
       <legend>Garrisoned armies</legend>
       {% for army in armies %}
-      <div>
-        <a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">{{ army.name }}</a>
-        <span class="hint">level {{ army.level }}</span>
-        <form method="post" action="{% url 'kingdoms:army_delete' kingdom.pk settlement.pk army.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button type="submit" title="Delete {{ army.name }}">Delete</button>
-        </form>
-      </div>
+      <p><a href="{% url 'kingdoms:army' kingdom.pk army.pk %}">{{ army.name }}</a> <span class="hint">{{ army.units.count }} unit{{ army.units.count|pluralize }}</span></p>
       {% empty %}
-      <p>None yet.</p>
+      <p>None.</p>
       {% endfor %}
-      <form method="post" action="{% url 'kingdoms:army_add' kingdom.pk settlement.pk %}">
-        {% csrf_token %}
-        {{ army_form.non_field_errors }}
-        <label>{{ army_form.name.label }} {{ army_form.name }}</label>{{ army_form.name.errors }}
-        <button type="submit">Add army</button>
-      </form>
+      <p class="hint">Armies are managed from the kingdom's Armies box. Set an army's garrison on its own page.</p>
     </fieldset>
     <fieldset>
       <legend>Ongoing events</legend>

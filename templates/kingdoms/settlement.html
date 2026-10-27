@@ -20,9 +20,9 @@
     <fieldset>
       <legend>Garrisoned armies</legend>
       {% for army in armies %}
-      <p><a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">{{ army.name }}</a> <span class="hint">level {{ army.level }}{% if army.army_type %} {{ army.army_type }}{% endif %}, HP {{ army.current_hp }}/{{ army.hp }}</span></p>
+      <p><a href="{% url 'kingdoms:army' kingdom.pk army.pk %}">{{ army.name }}</a> <span class="hint">{{ army.units.count }} unit{{ army.units.count|pluralize }}{% if army.location %}, {{ army.location }}{% endif %}</span></p>
       {% empty %}
-      <p>None. Add armies in edit mode.</p>
+      <p>None.</p>
       {% endfor %}
     </fieldset>
     <fieldset>

@@ -4,12 +4,14 @@ from . import growth
 from .access import new_access_code
 from .models import (
     Army,
+    Battle,
     Character,
     HistoryEntry,
     Kingdom,
     Placement,
     Settlement,
     Statistic,
+    Unit,
 )
 from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
@@ -101,12 +103,13 @@ def update_settlement(settlement, writer, values):
 def delete_settlement(settlement, writer):
     with transaction.atomic():
         buildings = sorted(building_label(p.building) for p in settlement.placements.all())
-        armies = sorted(army.name for army in settlement.armies.all())
+        # Armies outlive their garrison; they are only left without one.
+        armies = sorted(army.name for army in settlement.garrisoned_armies.all())
         changes = _deleted(
             {
                 "type": settlement.get_settlement_type_display(),
                 "buildings": buildings,
-                "armies": armies,
+                "garrisoned armies": armies,
             }
         )
         _record_and_touch(
@@ -147,30 +150,79 @@ def remove_building(settlement, writer, placement):
         )
 
 
-def add_army(settlement, writer, name):
+def add_army(kingdom, writer, name):
     with transaction.atomic():
-        army = Army.objects.create(settlement=settlement, name=name)
-        changes = _created({"name": name, "settlement": settlement.name})
-        _record_and_touch(settlement.kingdom, writer, HistoryEntry.Action.ARMY_ADDED, changes, army)
+        army = Army.objects.create(kingdom=kingdom, name=name)
+        changes = _created({"name": name})
+        _record_and_touch(kingdom, writer, HistoryEntry.Action.ARMY_ADDED, changes, army)
     return army
 
 
 def update_army(army, writer, values):
     with transaction.atomic():
-        changes = _labelled(_apply_changes(army, Army.SHEET_FIELDS, values))
+        changes = _labelled(_apply_changes(army, Army.ROSTER_FIELDS, values))
         if changes:
-            _record_and_touch(
-                army.settlement.kingdom, writer, HistoryEntry.Action.ARMY_EDITED, changes, army
-            )
+            _record_and_touch(army.kingdom, writer, HistoryEntry.Action.ARMY_EDITED, changes, army)
 
 
 def delete_army(army, writer):
     with transaction.atomic():
-        changes = _deleted({"name": army.name, "settlement": army.settlement.name})
-        _record_and_touch(
-            army.settlement.kingdom, writer, HistoryEntry.Action.ARMY_DELETED, changes, army
-        )
+        changes = _deleted({"name": army.name, "units": army.units.count()})
+        _record_and_touch(army.kingdom, writer, HistoryEntry.Action.ARMY_DELETED, changes, army)
         army.delete()
+
+
+def add_unit(army, writer, name):
+    with transaction.atomic():
+        order = (army.units.aggregate(models.Max("display_order"))["display_order__max"] or 0) + 1
+        unit = Unit.objects.create(army=army, name=name, display_order=order)
+        changes = _created({"name": name, "army": army.name})
+        _record_and_touch(army.kingdom, writer, HistoryEntry.Action.UNIT_ADDED, changes, unit)
+    return unit
+
+
+def update_unit(unit, writer, values):
+    with transaction.atomic():
+        changes = _labelled(_apply_changes(unit, Unit.FIELDS, values))
+        if changes:
+            _record_and_touch(
+                unit.army.kingdom, writer, HistoryEntry.Action.UNIT_EDITED, changes, unit
+            )
+
+
+def delete_unit(unit, writer):
+    with transaction.atomic():
+        changes = _deleted({"name": unit.name, "army": unit.army.name})
+        _record_and_touch(
+            unit.army.kingdom, writer, HistoryEntry.Action.UNIT_DELETED, changes, unit
+        )
+        unit.delete()
+
+
+def record_battle(kingdom, writer, values):
+    with transaction.atomic():
+        battle = Battle.objects.create(kingdom=kingdom, **values)
+        changes = _created({field: values[field] for field in ("name", "outcome")})
+        _record_and_touch(kingdom, writer, HistoryEntry.Action.BATTLE_RECORDED, changes, battle)
+    return battle
+
+
+def update_battle(battle, writer, values):
+    with transaction.atomic():
+        changes = _labelled(_apply_changes(battle, Battle.FIELDS, values))
+        if changes:
+            _record_and_touch(
+                battle.kingdom, writer, HistoryEntry.Action.BATTLE_EDITED, changes, battle
+            )
+
+
+def delete_battle(battle, writer):
+    with transaction.atomic():
+        changes = _deleted({"name": battle.name, "outcome": battle.outcome})
+        _record_and_touch(
+            battle.kingdom, writer, HistoryEntry.Action.BATTLE_DELETED, changes, battle
+        )
+        battle.delete()
 
 
 def add_character(kingdom, writer, name, kind, picture):

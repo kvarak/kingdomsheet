@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import army_views, character_views, settlement_views, views
+from . import army_views, battle_views, character_views, settlement_views, views
 
 app_name = "kingdoms"
 
@@ -54,32 +54,6 @@ urlpatterns = [
         name="settlement_edit_stop",
     ),
     path(
-        "kingdoms/<int:pk>/settlements/<int:spk>/armies/new/",
-        settlement_views.army_add,
-        name="army_add",
-    ),
-    path("kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/", army_views.army, name="army"),
-    path(
-        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/delete/",
-        settlement_views.army_delete,
-        name="army_delete",
-    ),
-    path(
-        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/",
-        army_views.army_edit,
-        name="army_edit",
-    ),
-    path(
-        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/start/",
-        army_views.army_edit_start,
-        name="army_edit_start",
-    ),
-    path(
-        "kingdoms/<int:pk>/settlements/<int:spk>/armies/<int:apk>/edit/stop/",
-        army_views.army_edit_stop,
-        name="army_edit_stop",
-    ),
-    path(
         "kingdoms/<int:pk>/settlements/<int:spk>/buildings/",
         settlement_views.building_place,
         name="building_place",
@@ -105,6 +79,39 @@ urlpatterns = [
         "kingdoms/<int:pk>/characters/<int:character_pk>/picture/",
         character_views.character_picture,
         name="character_picture",
+    ),
+    path("kingdoms/<int:pk>/armies/new/", views.army_add, name="army_add"),
+    path("kingdoms/<int:pk>/armies/<int:apk>/", army_views.army, name="army"),
+    path("kingdoms/<int:pk>/armies/<int:apk>/delete/", views.army_delete, name="army_delete"),
+    path("kingdoms/<int:pk>/armies/<int:apk>/edit/", army_views.army_edit, name="army_edit"),
+    path(
+        "kingdoms/<int:pk>/armies/<int:apk>/edit/start/",
+        army_views.army_edit_start,
+        name="army_edit_start",
+    ),
+    path(
+        "kingdoms/<int:pk>/armies/<int:apk>/edit/stop/",
+        army_views.army_edit_stop,
+        name="army_edit_stop",
+    ),
+    path("kingdoms/<int:pk>/armies/<int:apk>/units/new/", army_views.unit_add, name="unit_add"),
+    path(
+        "kingdoms/<int:pk>/armies/<int:apk>/units/<int:upk>/edit/",
+        army_views.unit_edit,
+        name="unit_edit",
+    ),
+    path(
+        "kingdoms/<int:pk>/armies/<int:apk>/units/<int:upk>/delete/",
+        army_views.unit_delete,
+        name="unit_delete",
+    ),
+    path("kingdoms/<int:pk>/battles/", battle_views.battles, name="battles"),
+    path("kingdoms/<int:pk>/battles/new/", battle_views.battle_add, name="battle_add"),
+    path("kingdoms/<int:pk>/battles/<int:bpk>/", battle_views.battle_edit, name="battle_edit"),
+    path(
+        "kingdoms/<int:pk>/battles/<int:bpk>/delete/",
+        battle_views.battle_delete,
+        name="battle_delete",
     ),
     path("names/", views.names, name="names"),
     path("names/forget/", views.forget_selected_name, name="forget_name"),

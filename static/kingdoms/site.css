@@ -445,12 +445,6 @@ td, th {
   display: inline;
 }
 
-.army-list {
-  margin: 0.25rem 0 0;
-  padding-left: 1.1rem;
-  font-size: 0.9rem;
-}
-
 .character-cards {
   display: flex;
   flex-wrap: wrap;
@@ -508,4 +502,19 @@ td, th {
 
 .penalty {
   color: #c00;
+}
+
+.unit-summary {
+  margin-bottom: 0.75rem;
+}
+
+.unit-summary textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.battle {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
 }

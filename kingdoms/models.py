@@ -205,49 +205,46 @@ class Settlement(EditLock):
 
 
 class Army(EditLock):
-    """One army, garrisoned in a settlement, following the PF2e army sheet."""
+    """An army roster: a named group of units belonging to a kingdom, optionally garrisoned in one
+    of its settlements.
+
+    Armies only record units and their state for battles played by hand on Roll20. Nothing about
+    combat is calculated here.
+    """
 
     MAX_HEALING_POTIONS = 3
-    # Fields edited on the army sheet, in sheet order.
-    SHEET_FIELDS = (
-        "name",
-        "level",
-        "alignment",
-        "army_type",
-        "commander",
-        "scouting",
-        "maneuver",
-        "morale",
-        "armor_bonus",
-        "hp",
-        "current_hp",
-        "rout_threshold",
-        "melee",
-        "ranged",
-        "shots",
-        "tactics",
-        "tactical_actions",
-        "conditions",
-        "abilities",
-        "armor_gear",
-        "melee_gear",
-        "ranged_gear",
-        "healing_potions",
-    )
+    # Fields edited in the interface.
+    ROSTER_FIELDS = ("name", "garrison", "commander", "location", "notes")
 
-    settlement = models.ForeignKey(Settlement, on_delete=models.CASCADE, related_name="armies")
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="armies")
+    garrison = models.ForeignKey(
+        Settlement,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="garrisoned_armies",
+    )
     name = models.CharField(max_length=120)
-    level = models.IntegerField(default=1)
-    alignment = models.CharField(max_length=30, blank=True)
-    army_type = models.CharField("army type", max_length=80, blank=True)
     commander = models.ForeignKey(
         "Character", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
-    # The army type's bonuses. Modifiers, DCs, AC, attack and recruitment DC are calculated from
-    # these and the army's level, see kingdoms.rules.army_numbers.
-    scouting = models.IntegerField("scouting bonus", default=0)
-    maneuver = models.IntegerField("maneuver bonus", default=0)
-    morale = models.IntegerField("morale bonus", default=0)
+    location = models.CharField(max_length=120, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Obsolete Kingmaker army sheet fields, hidden from the interface since armies became unit
+    # rosters. Kept with their data until a reviewed migration removes them.
+    level = models.IntegerField(default=1)
+    alignment = models.CharField(max_length=30, blank=True)
+    army_type = models.CharField("army type", max_length=80, blank=True)
+    scouting = models.IntegerField(default=0)
+    scouting_dc = models.IntegerField("scouting DC", default=0)
+    recruitment_dc = models.IntegerField("recruitment DC", default=0)
+    ac = models.IntegerField("AC", default=0)
+    maneuver = models.IntegerField(default=0)
+    maneuver_dc = models.IntegerField("maneuver DC", default=0)
+    morale = models.IntegerField(default=0)
+    morale_dc = models.IntegerField("morale DC", default=0)
     armor_bonus = models.IntegerField(default=0)
     hp = models.IntegerField("HP", default=0)
     current_hp = models.IntegerField("current HP", default=0)
@@ -265,7 +262,6 @@ class Army(EditLock):
     healing_potions = models.IntegerField(
         default=0, validators=[MinValueValidator(0), MaxValueValidator(MAX_HEALING_POTIONS)]
     )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["name", "id"]
@@ -274,9 +270,88 @@ class Army(EditLock):
     def __str__(self):
         return self.name
 
-    @property
-    def tactic_list(self):
-        return [line.strip() for line in self.tactics.splitlines() if line.strip()]
+
+class Unit(models.Model):
+    """One unit in an army roster. Every value is typed in by the players.
+
+    The fields follow what Strongholds & Followers units record, but nothing here is checked
+    against those rules: there are no derived statistics, fixed category lists or casualty rules.
+    """
+
+    # Fields edited in the interface, in display order.
+    FIELDS = (
+        "name",
+        "ancestry",
+        "experience",
+        "equipment",
+        "unit_type",
+        "attack",
+        "defense",
+        "power",
+        "toughness",
+        "morale",
+        "size",
+        "current_strength",
+        "max_strength",
+        "status",
+        "traits",
+        "notes",
+        "display_order",
+    )
+    STATISTICS = ("attack", "defense", "power", "toughness", "morale")
+
+    army = models.ForeignKey(Army, on_delete=models.CASCADE, related_name="units")
+    name = models.CharField(max_length=120)
+    ancestry = models.CharField(max_length=80, blank=True)
+    experience = models.CharField(max_length=80, blank=True)
+    equipment = models.CharField(max_length=80, blank=True)
+    unit_type = models.CharField("unit type", max_length=80, blank=True)
+    attack = models.IntegerField(default=0)
+    defense = models.IntegerField(default=0)
+    power = models.IntegerField(default=0)
+    toughness = models.IntegerField(default=0)
+    morale = models.IntegerField(default=0)
+    size = models.CharField("size / casualty die", max_length=40, blank=True)
+    current_strength = models.PositiveIntegerField(default=0)
+    max_strength = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=80, blank=True)
+    traits = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class Battle(models.Model):
+    """A battle in the kingdom's battle log. Recording one never changes any unit."""
+
+    class Outcome(models.TextChoices):
+        VICTORY = "victory", "Victory"
+        DEFEAT = "defeat", "Defeat"
+        DRAW = "draw", "Draw"
+        WITHDRAWAL = "withdrawal", "Withdrawal"
+
+    FIELDS = ("name", "location", "date", "opponents", "outcome", "notes")
+
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="battles")
+    name = models.CharField(max_length=120)
+    location = models.CharField(max_length=120, blank=True)
+    date = models.CharField("in-game date", max_length=80, blank=True)
+    opponents = models.TextField(blank=True)
+    outcome = models.CharField(max_length=12, choices=Outcome.choices)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return self.name
 
 
 class Placement(models.Model):
@@ -346,6 +421,12 @@ class HistoryEntry(models.Model):
         ARMY_ADDED = "army_added", "Army added"
         ARMY_EDITED = "army_edited", "Army edited"
         ARMY_DELETED = "army_deleted", "Army deleted"
+        UNIT_ADDED = "unit_added", "Unit added"
+        UNIT_EDITED = "unit_edited", "Unit edited"
+        UNIT_DELETED = "unit_deleted", "Unit deleted"
+        BATTLE_RECORDED = "battle_recorded", "Battle recorded"
+        BATTLE_EDITED = "battle_edited", "Battle edited"
+        BATTLE_DELETED = "battle_deleted", "Battle deleted"
         CHARACTER_ADDED = "character_added", "Character added"
         CHARACTER_EDITED = "character_edited", "Character edited"
         CHARACTER_DELETED = "character_deleted", "Character deleted"
@@ -354,7 +435,7 @@ class HistoryEntry(models.Model):
     action = models.CharField(max_length=32, choices=Action.choices)
     display_name = models.CharField(max_length=40)
     name_verified = models.BooleanField()
-    # What the entry is about besides the kingdom: a statistic, settlement, army or character.
+    # What the entry is about besides the kingdom, such as a statistic, settlement or unit.
     subject_id = models.PositiveBigIntegerField(null=True, blank=True)
     subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)

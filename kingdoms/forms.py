@@ -4,7 +4,7 @@ from django.forms.models import fields_for_model
 from . import growth, pictures
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
-from .models import Army, Character, Kingdom, Placement, Settlement
+from .models import Army, Battle, Character, Kingdom, Placement, Settlement, Unit
 from .sheet import KINGDOM_FIELDS, LEADER_ROWS, ROW_GROUPS
 
 PASSWORD_MIN_LENGTH = 8
@@ -111,23 +111,55 @@ class NewArmyForm(forms.Form):
 
 
 class ArmyForm(forms.ModelForm):
-    """The army sheet. Saved through services.update_army, never with ModelForm.save()."""
+    """The army roster details. Saved through services.update_army, never with ModelForm.save()."""
 
     class Meta:
         model = Army
-        fields = Army.SHEET_FIELDS
-        widgets = {
-            "tactics": forms.Textarea(attrs={"rows": 6}),
-            "tactical_actions": forms.Textarea(attrs={"rows": 4}),
-            "conditions": forms.Textarea(attrs={"rows": 4}),
-            "abilities": forms.Textarea(attrs={"rows": 4}),
-        }
+        fields = Army.ROSTER_FIELDS
+        widgets = {"notes": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *args, kingdom, **kwargs):
         super().__init__(*args, **kwargs)
-        # Commanders may only be this kingdom's characters.
+        # Commanders and garrisons may only come from this kingdom.
         self.fields["commander"].queryset = Character.objects.filter(kingdom=kingdom)
         self.fields["commander"].empty_label = "None"
+        self.fields["garrison"].queryset = Settlement.objects.filter(kingdom=kingdom)
+        self.fields["garrison"].empty_label = "None"
+
+
+class NewUnitForm(forms.Form):
+    name = forms.CharField(label="Unit name", max_length=120)
+
+
+class UnitForm(forms.ModelForm):
+    """One unit's record. Saved through services.update_unit, never with ModelForm.save()."""
+
+    class Meta:
+        model = Unit
+        fields = Unit.FIELDS
+        widgets = {
+            "traits": forms.Textarea(attrs={"rows": 3}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def clean(self):
+        data = super().clean()
+        current, maximum = data.get("current_strength"), data.get("max_strength")
+        if current is not None and maximum is not None and current > maximum:
+            self.add_error("current_strength", "Current strength cannot be more than maximum.")
+        return data
+
+
+class BattleForm(forms.ModelForm):
+    """A battle log entry. Saved through services, never with ModelForm.save()."""
+
+    class Meta:
+        model = Battle
+        fields = Battle.FIELDS
+        widgets = {
+            "opponents": forms.Textarea(attrs={"rows": 2}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
 
 
 class CharacterForm(forms.Form):

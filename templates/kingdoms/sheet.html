@@ -29,7 +29,7 @@
         <span class="hint">Resource dice</span> {{ kingdom.resource_dice|default:"-" }} &middot;
         <span class="hint">Bonus dice</span> {{ kingdom.bonus_dice }}
       </p>
-      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a></p>
+      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a></p>
     </div>
     <div class="col-half">
       <p class="hint">Description</p>
@@ -136,6 +136,7 @@
         {% endfor %}
       </div>
     </fieldset>
+    {% include "kingdoms/includes/army_list.html" %}
     <fieldset><legend>Relations</legend><p>{{ kingdom.relations|default:"-"|linebreaksbr }}</p></fieldset>
     <fieldset><legend>Ongoing events</legend><p>{{ kingdom.ongoing_events|default:"-"|linebreaksbr }}</p></fieldset>
 

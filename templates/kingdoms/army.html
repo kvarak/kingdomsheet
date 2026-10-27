@@ -1,45 +1,44 @@
 {% extends "kingdoms/base.html" %}
+{% load static %}
 {% block title %}{{ army.name }}{% endblock %}
 {% block heading %}{{ army.name }}{% endblock %}
 {% block toolbar %}
-{% url 'kingdoms:army_edit_start' kingdom.pk settlement.pk army.pk as start_url %}{% url 'kingdoms:army_edit' kingdom.pk settlement.pk army.pk as edit_url %}
+{% url 'kingdoms:army_edit_start' kingdom.pk army.pk as start_url %}{% url 'kingdoms:army_edit' kingdom.pk army.pk as edit_url %}
 {% include "kingdoms/includes/lock_cog.html" with what="army" %}
 {% endblock %}
 {% block content %}
-<p>Level {{ army.level }} {{ army.army_type|default:"army" }}, garrisoned in <a href="{% url 'kingdoms:settlement' kingdom.pk settlement.pk %}">{{ settlement.name }}</a> &middot; <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></p>
+<p>Army of <a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a> &middot; <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a></p>
 
 <div class="page-columns">
   <div class="col-left">
     <fieldset class="value-list">
       <legend>Army</legend>
-      <p><span class="hint">Level</span> <strong>{{ army.level }}</strong> &middot; <span class="hint">Alignment</span> {{ army.alignment|default:"-" }}</p>
-      <p><span class="hint">Army type</span> {{ army.army_type|default:"-" }}</p>
+      <p><span class="hint">Garrison</span> {% if army.garrison %}<a href="{% url 'kingdoms:settlement' kingdom.pk army.garrison_id %}">{{ army.garrison.name }}</a>{% else %}none{% endif %}</p>
       <p><span class="hint">Commander</span> {% if army.commander %}{% include "kingdoms/includes/character_avatar.html" with character=army.commander %} {{ army.commander.name }}{% else %}none{% endif %}</p>
-      <p><span class="hint">Proficiency</span> {{ numbers.proficiency|stringformat:"+d" }} &middot; <span class="hint">Recruitment DC</span> {{ numbers.recruitment_dc }}</p>
-      <p><span class="hint">AC</span> <strong class="calc">{{ numbers.ac }}</strong> &middot; <span class="hint">Attack</span> <strong class="calc">{{ numbers.attack|stringformat:"+d" }}</strong></p>
-      <p><span class="hint">Scouting</span> {{ numbers.scouting|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.scouting_dc }}</p>
-      <p><span class="hint">Maneuver</span> {{ numbers.maneuver|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.maneuver_dc }}</p>
-      <p><span class="hint">Morale</span> {{ numbers.morale|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.morale_dc }}</p>
-      <p><span class="hint">HP</span> <strong>{{ army.current_hp }}</strong> / {{ army.hp }} &middot; <span class="hint">Rout threshold</span> {{ army.rout_threshold }}</p>
-      <p><span class="hint">Melee</span> {{ army.melee|default:"-" }} {{ numbers.attack|stringformat:"+d" }}</p>
-      <p><span class="hint">Ranged</span> {{ army.ranged|default:"-" }} {% if army.ranged %}{{ numbers.attack|stringformat:"+d" }} {% endif %}&middot; <span class="hint">Shots</span> {{ army.shots }}</p>
-    </fieldset>
-    <fieldset class="value-list">
-      <legend>Gear</legend>
-      <p><span class="hint">Armor</span> {{ army.armor_gear|default:"-" }}</p>
-      <p><span class="hint">Melee</span> {{ army.melee_gear|default:"-" }}</p>
-      <p><span class="hint">Ranged</span> {{ army.ranged_gear|default:"-" }}</p>
-      <p><span class="hint">Healing potions</span> {{ army.healing_potions }} / {{ army.MAX_HEALING_POTIONS }}</p>
+      <p><span class="hint">Location</span> {{ army.location|default:"-" }}</p>
+      <p><span class="hint">Notes</span></p>
+      <p>{{ army.notes|default:"-"|linebreaksbr }}</p>
     </fieldset>
   </div>
   <div class="col-right">
     <fieldset>
-      <legend>Tactics</legend>
-      {% if army.tactic_list %}<ol>{% for tactic in army.tactic_list %}<li>{{ tactic }}</li>{% endfor %}</ol>{% else %}<p>-</p>{% endif %}
+      <legend>Units</legend>
+      {% include "kingdoms/includes/unit_table.html" with editing=False %}
+      <p class="hint">Values are recorded by hand for battles played on Roll20. Nothing is calculated.</p>
     </fieldset>
-    <fieldset><legend>Tactical actions</legend><p>{{ army.tactical_actions|default:"-"|linebreaksbr }}</p></fieldset>
-    <fieldset><legend>Current conditions</legend><p>{{ army.conditions|default:"-"|linebreaksbr }}</p></fieldset>
-    <fieldset><legend>Current abilities</legend><p>{{ army.abilities|default:"-"|linebreaksbr }}</p></fieldset>
+    {% if units %}
+    <fieldset>
+      <legend>Unit summaries for Roll20</legend>
+      {% for unit, summary in units %}
+      <div class="unit-summary">
+        <label for="summary-{{ unit.pk }}"><strong>{{ unit.name }}</strong></label>
+        <button type="button" data-copy-target="summary-{{ unit.pk }}">Copy unit summary</button>
+        <textarea id="summary-{{ unit.pk }}" readonly rows="7">{{ summary }}</textarea>
+      </div>
+      {% endfor %}
+    </fieldset>
+    <script src="{% static 'kingdoms/copy-text.js' %}" defer></script>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

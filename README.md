@@ -126,20 +126,17 @@ Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2
 
 ## Armies
 
-Armies are garrisoned in settlements, the way settlements belong to kingdoms. Each army has its own page following the layout of the Kingmaker army sheet: level, alignment, type, commander, scouting, recruitment DC, AC, maneuver, morale, HP, rout threshold, melee, ranged, shots, tactics, tactical actions, conditions, abilities, gear and healing potions (max 3).
+Armies are rosters of units belonging to the kingdom, each optionally garrisoned in one of its settlements. Battles are played by hand on Roll20 with unit tokens, casualty counters and chat rolls; the app only records units and outcomes. There is no battlefield, combat engine, Roll20 sheet, API script or synchronisation.
 
-The numbers use the Varlyn 5e scale and are calculated from the army's level and its type bonuses:
-
-- Proficiency bonus by army level, as for characters (+2 to +6).
-- AC = 11 + proficiency + armor bonus. Attack = proficiency + 3.
-- Scouting, maneuver and morale = proficiency + the army type's bonus. Their DCs = 8 + the modifier, like Varlyn's combat save DCs.
-- Recruitment DC = 12 + proficiency.
-- The commander is one of the kingdom's characters. Leading an army takes a Varlyn Leadership trait: Raise Company (about 100 soldiers), Command (1,000 or more) or Marshal (a national army).
-
-Everything else, such as HP, rout threshold and gear, is typed in by hand.
-
-- Add or delete armies from the settlement page in settlement edit mode. An army that someone else is editing cannot be deleted, and neither can its settlement.
-- Editing an army uses its own cogwheel and lock, separate from the settlement's and the kingdom's.
+- An army has a name, a garrison settlement (optional), a commander (one of the kingdom's characters), a location and notes. Add or delete armies in the Armies box in kingdom edit mode. An army that someone else is editing cannot be deleted. Deleting a settlement keeps its armies, without a garrison.
+- Editing an army and its units uses the army's own cogwheel and lock, separate from the kingdom's and the settlements'.
+- A unit has a name; ancestry, experience, equipment and unit type as free text; Attack, Defense, Power, Toughness and Morale as whole numbers; a size or casualty die as free text; current and maximum strength; status, traits and notes; and a display order. Every value is typed in. Strength cannot be negative, and current strength cannot be more than maximum.
+- Strongholds & Followers is the intended reference for units, but nothing is checked against it: no statistic is derived, no category list is enforced and no casualty rule is applied.
+- The army page shows a plain-text summary of each unit with a "Copy unit summary" button, for pasting into Roll20 chat. The text is also in a read-only box for copying by hand.
+- The battle log (linked from the Kingdom box) records each battle's name, location, in-game date, opponents, outcome (victory, defeat, draw or withdrawal) and notes. Recording a battle never changes a unit: update current strength and status on the army page afterwards.
+- Every change to armies, units and battles is recorded in the kingdom history.
+- Recruitment, upkeep, recovery, commander bonuses and how armies connect to kingdom skills are not decided yet, so none of them are implemented.
+- The fields of the older Kingmaker army sheet (level, AC, saves, HP, tactics, gear and so on) are hidden but kept with their data until a reviewed migration removes them.
 
 ## Characters
 
@@ -173,7 +170,7 @@ The command prompts for the password twice without echoing it.
 ## Layout
 
 - `config/`: Django settings and URLs.
-- `kingdoms/`: models, forms, views and tests. `rules.py` holds the kingdom and army rules and arithmetic (Pathfinder 2e structure on the Varlyn 5e scale); `sheet.py` maps the sheet onto models and form fields.
+- `kingdoms/`: models, forms, views and tests. `rules.py` holds the kingdom rules and arithmetic (Pathfinder 2e structure on the Varlyn 5e scale); `sheet.py` maps the sheet onto models and form fields.
 - `templates/kingdoms/`, `static/kingdoms/`: plain HTML and CSS.
 - `Dockerfile`, `docker-compose.yml`, `Makefile`: container and task setup.
 - `requirements.in` and `requirements-dev.in`: dependency sources. The `.txt` files are pinned locks.

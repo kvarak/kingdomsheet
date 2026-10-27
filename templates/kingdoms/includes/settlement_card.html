@@ -5,17 +5,10 @@
     <strong>{{ settlement.name }}</strong>
   </a>
   <span class="hint">{{ settlement.get_settlement_type_display }}, level {{ settlement.level }}</span>
-  {% if settlement.armies.all %}
-  <ul class="army-list">
-    {% for army in settlement.armies.all %}
-    <li><a href="{% url 'kingdoms:army' kingdom.pk settlement.pk army.pk %}">{{ army.name }}</a> <span class="hint">level {{ army.level }}</span></li>
-    {% endfor %}
-  </ul>
-  {% endif %}
   {% if deletable %}
   <form method="post" action="{% url 'kingdoms:settlement_delete' kingdom.pk settlement.pk %}">
     {% csrf_token %}
-    <button type="submit" title="Delete {{ settlement.name }} and all its buildings and armies">Delete</button>
+    <button type="submit" title="Delete {{ settlement.name }} and its buildings. Its armies stay, without a garrison.">Delete</button>
   </form>
   {% endif %}
 </div>

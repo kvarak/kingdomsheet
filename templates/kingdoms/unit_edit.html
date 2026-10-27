@@ -1,0 +1,59 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}{{ unit.name }}: {{ army.name }}{% endblock %}
+{% block heading %}{{ unit.name }}{% endblock %}
+{% block toolbar %}
+{% url 'kingdoms:army_edit_start' kingdom.pk army.pk as start_url %}{% url 'kingdoms:army_edit_stop' kingdom.pk army.pk as stop_url %}
+{% include "kingdoms/includes/lock_toolbar.html" with save_form="unit-form" save_label="Save unit" %}
+{% endblock %}
+{% block content %}
+<p>Unit of <a href="{% url 'kingdoms:army_edit' kingdom.pk army.pk %}">{{ army.name }}</a>. Every value is recorded by hand; nothing is calculated or checked against a rulebook.</p>
+
+{% if form_errors %}
+<div class="error">
+  <p>The unit was not saved. Fix these fields:</p>
+  <ul>{% for message in form_errors %}<li>{{ message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<form id="unit-form" method="post" action="{% url 'kingdoms:unit_edit' kingdom.pk army.pk unit.pk %}">
+  {% csrf_token %}
+  <div class="page-columns">
+    <div class="col-left">
+      <fieldset>
+        <legend>Unit</legend>
+        <label>Name {{ form.name }}</label>
+        <label>Ancestry {{ form.ancestry }}</label>
+        <label>Experience {{ form.experience }}</label>
+        <label>Equipment {{ form.equipment }}</label>
+        <label>Unit type {{ form.unit_type }}</label>
+        <label>Display order {{ form.display_order }}</label>
+      </fieldset>
+      <fieldset>
+        <legend>Strength</legend>
+        <label>Current strength {{ form.current_strength }}</label>
+        <label>Maximum strength {{ form.max_strength }}</label>
+        <label>Size / casualty die {{ form.size }}</label>
+        <label>Status {{ form.status }}</label>
+      </fieldset>
+    </div>
+    <div class="col-right">
+      <fieldset>
+        <legend>Statistics</legend>
+        <label>Attack {{ form.attack }}</label>
+        <label>Defense {{ form.defense }}</label>
+        <label>Power {{ form.power }}</label>
+        <label>Toughness {{ form.toughness }}</label>
+        <label>Morale {{ form.morale }}</label>
+      </fieldset>
+      <fieldset>
+        <legend>Traits</legend>
+        {{ form.traits }}
+      </fieldset>
+      <fieldset>
+        <legend>Notes</legend>
+        {{ form.notes }}
+      </fieldset>
+    </div>
+  </div>
+</form>
+{% endblock %}

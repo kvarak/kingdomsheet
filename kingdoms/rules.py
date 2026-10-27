@@ -1,7 +1,7 @@
-"""Kingdom and army rules: the Pathfinder 2e Kingmaker subsystem adapted to Varlyn 5e.
+"""Kingdom rules: the Pathfinder 2e Kingmaker kingdom subsystem adapted to Varlyn 5e.
 
-The structure (abilities, ruin, 16 kingdom skills, leadership roles, army sheet) follows the
-official Kingmaker sheets. The numbers use the Varlyn 5e scale: a proficiency bonus by level,
+The structure (abilities, ruin, 16 kingdom skills, leadership roles) follows the official
+Kingmaker kingdom sheet. The numbers use the Varlyn 5e scale: a proficiency bonus by level,
 Expertise as advantage and Improved Proficiency as +1 steps (see dnd.rigo.nu). Only the formulas
 here are calculated; everything else is typed in by the players.
 """
@@ -121,10 +121,6 @@ KINGDOM_DC_ADJUSTMENTS = {"hard": 2, "very hard": 5}
 # (fewest hexes, size modifier) from the Kingmaker kingdom size table.
 SIZE_MODIFIERS = [(100, 4), (50, 3), (25, 2), (10, 1), (1, 0)]
 
-ARMY_AC_BASE = 11
-ARMY_ATTACK_BONUS = 3
-ARMY_SAVE_DC_BASE = 8
-
 
 def ability_modifier(score):
     return (score - 10) // 2
@@ -188,20 +184,3 @@ def control_dc(level, size, ruler_vacant=False):
     return (
         kingdom_dc(level) + size_modifier(size) + (RULER_VACANCY_CONTROL_DC if ruler_vacant else 0)
     )
-
-
-def army_numbers(*, level, armor_bonus, scouting, maneuver, morale):
-    """Calculated army values. Scouting, maneuver and morale are the army type's bonuses."""
-    proficiency = proficiency_bonus(level)
-    saves = {"scouting": scouting, "maneuver": maneuver, "morale": morale}
-    numbers = {
-        "proficiency": proficiency,
-        "ac": ARMY_AC_BASE + proficiency + armor_bonus,
-        "attack": proficiency + ARMY_ATTACK_BONUS,
-        "recruitment_dc": kingdom_dc(level),
-    }
-    for name, type_bonus in saves.items():
-        modifier = proficiency + type_bonus
-        numbers[name] = modifier
-        numbers[f"{name}_dc"] = ARMY_SAVE_DC_BASE + modifier
-    return numbers

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -25,6 +26,7 @@ from .editing import (
 )
 from .forms import (
     JoinForm,
+    NewArmyForm,
     NewKingdomForm,
     NewSettlementForm,
     ProtectForm,
@@ -32,7 +34,7 @@ from .forms import (
     SheetForm,
     StatisticForm,
 )
-from .models import Settlement, Statistic
+from .models import Army, Settlement, Statistic
 from .names import (
     NameSelectionError,
     current_editor,
@@ -80,9 +82,12 @@ def _sheet_context(request, kingdom, sheet_form):
                 "blocks": grid.build_grid(settlement),
                 "border_sides": grid.border_sides(settlement),
             }
-            for settlement in kingdom.settlement_set.prefetch_related("placements", "armies")
+            for settlement in kingdom.settlement_set.prefetch_related("placements")
         ],
         "block_image": grid.BLOCK_IMAGE,
+        "armies": Army.objects.filter(kingdom=kingdom)
+        .select_related("garrison", "commander")
+        .annotate(unit_count=Count("units")),
         **lock_context(kingdom, writer),
     }
 
@@ -99,6 +104,7 @@ def _render_edit(
     stat_form=None,
     row_forms=None,
     settlement_form=None,
+    army_form=None,
     status=200,
 ):
     """Render the editable sheet. `row_forms` maps statistic IDs to forms that failed validation."""
@@ -108,6 +114,7 @@ def _render_edit(
     context["sheet_errors"] = error_messages(sheet_form) if sheet_form.is_bound else []
     context["stat_form"] = stat_form or StatisticForm(initial={"value": 0, "display_order": 0})
     context["settlement_form"] = settlement_form or NewSettlementForm()
+    context["army_form"] = army_form or NewArmyForm()
     context["statistic_rows"] = [
         (
             statistic,
@@ -260,14 +267,39 @@ def settlement_delete(request, pk, spk):
     writer, refused = _take_kingdom_lock(request, kingdom)
     if refused:
         return refused
-    busy = locked_by_other([settlement, *settlement.armies.all()], writer)
+    busy = locked_by_other([settlement], writer)
     if busy:
-        thing, editor = busy
-        messages.error(
-            request, f"{editor} is editing {thing}, so {settlement} cannot be deleted now."
-        )
+        messages.error(request, f"{busy[1]} is editing {settlement}, so it cannot be deleted now.")
     else:
         services.delete_settlement(settlement, writer)
+    return redirect(kingdom_edit_url(pk))
+
+
+@require_POST
+def army_add(request, pk):
+    kingdom = get_remembered_kingdom_or_404(request, pk)
+    writer, refused = _take_kingdom_lock(request, kingdom)
+    if refused:
+        return refused
+    form = NewArmyForm(request.POST)
+    if not form.is_valid():
+        return _render_edit(request, kingdom, army_form=form, status=400)
+    services.add_army(kingdom, writer, form.cleaned_data["name"])
+    return redirect(kingdom_edit_url(pk))
+
+
+@require_POST
+def army_delete(request, pk, apk):
+    kingdom = get_remembered_kingdom_or_404(request, pk)
+    army = get_object_or_404(Army, pk=apk, kingdom=kingdom)
+    writer, refused = _take_kingdom_lock(request, kingdom)
+    if refused:
+        return refused
+    busy = locked_by_other([army], writer)
+    if busy:
+        messages.error(request, f"{busy[1]} is editing {army}, so it cannot be deleted now.")
+    else:
+        services.delete_army(army, writer)
     return redirect(kingdom_edit_url(pk))
 
 

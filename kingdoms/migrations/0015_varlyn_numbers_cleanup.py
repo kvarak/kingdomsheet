@@ -16,26 +16,6 @@ class Migration(migrations.Migration):
             options={'ordering': ['kind', 'name', 'id']},
         ),
         migrations.RemoveField(
-            model_name='army',
-            name='ac',
-        ),
-        migrations.RemoveField(
-            model_name='army',
-            name='maneuver_dc',
-        ),
-        migrations.RemoveField(
-            model_name='army',
-            name='morale_dc',
-        ),
-        migrations.RemoveField(
-            model_name='army',
-            name='recruitment_dc',
-        ),
-        migrations.RemoveField(
-            model_name='army',
-            name='scouting_dc',
-        ),
-        migrations.RemoveField(
             model_name='kingdom',
             name='control_dc_base',
         ),
@@ -58,21 +38,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='kingdomskill',
             name='status',
-        ),
-        migrations.AlterField(
-            model_name='army',
-            name='maneuver',
-            field=models.IntegerField(default=0, verbose_name='maneuver bonus'),
-        ),
-        migrations.AlterField(
-            model_name='army',
-            name='morale',
-            field=models.IntegerField(default=0, verbose_name='morale bonus'),
-        ),
-        migrations.AlterField(
-            model_name='army',
-            name='scouting',
-            field=models.IntegerField(default=0, verbose_name='scouting bonus'),
         ),
         migrations.AlterField(
             model_name='character',

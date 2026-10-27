@@ -1,0 +1,39 @@
+{% comment %}All of the kingdom's armies. Needs armies and kingdom; `editing` adds Add and Delete, under the kingdom's edit lock.{% endcomment %}
+<fieldset>
+  <legend>Armies</legend>
+  <table>
+    <thead>
+      <tr><th>Army</th><th>Units</th><th>Commander</th><th>Location</th><th>Garrison</th>{% if editing %}<th></th>{% endif %}</tr>
+    </thead>
+    <tbody>
+      {% for army in armies %}
+      <tr>
+        <td><a href="{% url 'kingdoms:army' kingdom.pk army.pk %}">{{ army.name }}</a></td>
+        <td>{{ army.unit_count }}</td>
+        <td>{{ army.commander.name|default:"-" }}</td>
+        <td>{{ army.location|default:"-" }}</td>
+        <td>{% if army.garrison %}<a href="{% url 'kingdoms:settlement' kingdom.pk army.garrison_id %}">{{ army.garrison.name }}</a>{% else %}-{% endif %}</td>
+        {% if editing %}
+        <td>
+          <form method="post" action="{% url 'kingdoms:army_delete' kingdom.pk army.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" title="Delete {{ army.name }} and its units">Delete</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% empty %}
+      <tr><td colspan="{% if editing %}6{% else %}5{% endif %}">No armies yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if editing %}
+  <form method="post" action="{% url 'kingdoms:army_add' kingdom.pk %}">
+    {% csrf_token %}
+    {{ army_form.non_field_errors }}
+    <label>{{ army_form.name.label }} {{ army_form.name }}</label>{{ army_form.name.errors }}
+    <button type="submit">Add army</button>
+  </form>
+  {% endif %}
+  <p class="hint">Set an army's garrison, commander and units on its own page. <a href="{% url 'kingdoms:battles' kingdom.pk %}">Battle log</a></p>
+</fieldset>
