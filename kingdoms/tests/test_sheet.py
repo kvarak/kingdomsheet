@@ -2,7 +2,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .. import rules
-from ..models import Character, HistoryEntry, Kingdom
+from ..models import Army, Character, HistoryEntry, Kingdom
 from .helpers import PASSWORD, PLAYER_NAME, sheet_post_data
 
 
@@ -186,6 +186,16 @@ class KingdomSheetTests(TestCase):
         self.client.post(reverse("kingdoms:character_delete", args=[self.kingdom.pk, kesten.pk]))
         leader = self.kingdom.leaders.get(role="ruler")
         self.assertEqual((leader.character, leader.invested), (None, False))
+
+    def test_characters_with_several_roles_are_warned_about(self):
+        warning = '<p class="penalty">Kesten has several roles: General, Commander of Ravagers.</p>'
+        kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="npc")
+        self.kingdom.leaders.filter(role="general").update(character=kesten)
+        self.assertNotContains(self.client.get(self.url), "several roles")
+        Army.objects.create(kingdom=self.kingdom, name="Ravagers", commander=kesten)
+        self.assertContains(self.client.get(self.url), warning, html=True)
+        self.client.post(reverse("kingdoms:edit_start", args=[self.kingdom.pk]))
+        self.assertContains(self.client.get(self.edit_url), warning, html=True)
 
     def test_invalid_rank_is_rejected(self):
         response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, trade_rank=9))

@@ -11,41 +11,22 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
-from . import pictures, rules, services
+from . import pictures, services
 from .access import get_remembered_kingdom_or_404
 from .editing import names_redirect
 from .forms import CharacterForm
-from .models import Army, Character, KingdomLeader, Unit
+from .models import Character
 from .names import current_editor, current_writer
+from .roles import character_roles
 
 
 def _characters_url(pk):
     return reverse("kingdoms:characters", args=[pk])
 
 
-def _roles(kingdom):
-    """Every role in the kingdom by character id, as (label, url) pairs."""
-    roles = {}
-    sheet_url = reverse("kingdoms:sheet", args=[kingdom.pk])
-    leaders = KingdomLeader.objects.filter(kingdom=kingdom, character__isnull=False)
-    order = [key for key, _, _ in rules.LEADERSHIP_ROLES]
-    for leader in sorted(leaders, key=lambda leader: order.index(leader.role)):
-        roles.setdefault(leader.character_id, []).append((str(leader), sheet_url))
-    for army in Army.objects.filter(kingdom=kingdom, commander__isnull=False):
-        url = reverse("kingdoms:army", args=[kingdom.pk, army.pk])
-        roles.setdefault(army.commander_id, []).append((f"Commander of {army}", url))
-    heroes = Unit.objects.filter(
-        army__kingdom=kingdom, army__deleted_at__isnull=True, hero__isnull=False
-    ).select_related("army")
-    for unit in heroes:
-        url = reverse("kingdoms:army", args=[kingdom.pk, unit.army_id])
-        roles.setdefault(unit.hero_id, []).append((f"Hero of {unit} ({unit.army})", url))
-    return roles
-
-
 def _render(request, kingdom, *, add_form=None, edit_forms=None, status=200):
     edit_forms = edit_forms or {}
-    roles = _roles(kingdom)
+    roles = character_roles(kingdom)
     characters = [
         (
             character,

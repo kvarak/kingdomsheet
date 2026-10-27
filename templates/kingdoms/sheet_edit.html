@@ -43,6 +43,7 @@
       {{ form.description }}
       <label for="{{ form.notes.id_for_label }}">Notes</label>
       {{ form.notes }}
+      {% for character, roles in multiple_roles %}<p class="penalty">{{ character.name }} has several roles: {{ roles|join:", " }}.</p>{% endfor %}
     </div>
   </div>
 </fieldset>

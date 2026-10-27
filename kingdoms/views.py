@@ -44,6 +44,7 @@ from .names import (
     protect_current_name,
     select_name,
 )
+from .roles import multiple_roles
 from .services import STATISTIC_FIELDS
 from .sheet import build_sheet, error_messages, field_values, sheet_values
 
@@ -76,6 +77,7 @@ def _sheet_context(request, kingdom, sheet_form):
         "writer": writer,
         "form": sheet_form,
         "sheet": build_sheet(kingdom, sheet_form),
+        "multiple_roles": multiple_roles(kingdom),
         "settlements": [
             {
                 "settlement": settlement,
