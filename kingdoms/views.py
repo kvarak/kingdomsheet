@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -34,7 +34,7 @@ from .forms import (
     SheetForm,
     StatisticForm,
 )
-from .models import Army, Settlement, Statistic
+from .models import Army, HistoryEntry, Settlement, Statistic
 from .names import (
     NameSelectionError,
     current_editor,
@@ -87,7 +87,7 @@ def _sheet_context(request, kingdom, sheet_form):
         "block_image": grid.BLOCK_IMAGE,
         "armies": Army.objects.filter(kingdom=kingdom)
         .select_related("garrison", "commander")
-        .annotate(unit_count=Count("units")),
+        .annotate(unit_count=Count("units", filter=Q(units__deleted_at__isnull=True))),
         **lock_context(kingdom, writer),
     }
 
@@ -306,8 +306,25 @@ def army_delete(request, pk, apk):
 @require_GET
 def history(request, pk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
-    context = {"kingdom": kingdom, "entries": kingdom.history.all()}
+    entries = list(kingdom.history.all())
+    for entry in entries:
+        entry.can_restore = services.restorable_subject(entry) is not None
+    context = {"kingdom": kingdom, "entries": entries, "writer": current_writer(request)}
     return render(request, "kingdoms/history.html", context)
+
+
+@require_POST
+def history_restore(request, pk, entry_pk):
+    """Undo a deletion from the history. A single save, so it needs a protected name but no lock."""
+    kingdom = get_remembered_kingdom_or_404(request, pk)
+    entry = get_object_or_404(HistoryEntry, pk=entry_pk, kingdom=kingdom)
+    history_url = reverse("kingdoms:history", args=[pk])
+    writer = current_editor(request)
+    if writer is None:
+        return names_redirect(history_url)
+    if services.restore_deleted(entry, writer) is None:
+        messages.error(request, "That can no longer be restored.")
+    return redirect(history_url)
 
 
 def _name_ratelimit_key(group, request):

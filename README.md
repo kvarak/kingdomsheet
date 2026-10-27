@@ -183,4 +183,5 @@ To change dependencies, edit the `.in` file and recompile the lock inside a Pyth
 
 - The access code is the only secret. There is no per-user audit beyond the display name.
 - History entries are never edited or deleted by the app.
+- Deleted settlements, armies, units and characters are only hidden, so any protected name can bring one back with **Restore** on its latest "deleted" history entry. A settlement returns with its buildings, an army with its units and a character with its picture. Links the deletion cleared (a garrison, leader role, invested mark, command or hero) come back only where nobody has filled them since. Deleted rows stay in the database; nothing purges them. Battles and statistics are still deleted for good, and ordinary edits cannot be reverted.
 - Membership is per browser session. It is not tied to a user account.

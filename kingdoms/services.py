@@ -1,6 +1,7 @@
 from django.db import IntegrityError, models, transaction
+from django.utils import timezone
 
-from . import growth
+from . import growth, rules
 from .access import new_access_code
 from .models import (
     Army,
@@ -102,7 +103,6 @@ def update_settlement(settlement, writer, values):
 def delete_settlement(settlement, writer):
     with transaction.atomic():
         buildings = sorted(building_label(p.building) for p in settlement.placements.all())
-        # Armies outlive their garrison; they are only left without one.
         armies = sorted(army.name for army in settlement.garrisoned_armies.all())
         changes = _deleted(
             {
@@ -111,10 +111,11 @@ def delete_settlement(settlement, writer):
                 "garrisoned armies": armies,
             }
         )
-        _record_and_touch(
-            settlement.kingdom, writer, HistoryEntry.Action.SETTLEMENT_DELETED, changes, settlement
-        )
-        settlement.delete()
+        # Armies outlive their garrison; they are only left without one until it is restored.
+        garrisoned = Army.all_objects.filter(garrison=settlement)
+        restore = {"armies": list(garrisoned.values_list("pk", flat=True))}
+        garrisoned.update(garrison=None)
+        _soft_delete(settlement, writer, HistoryEntry.Action.SETTLEMENT_DELETED, changes, restore)
 
 
 def place_building(settlement, writer, values):
@@ -164,8 +165,7 @@ def update_army(army, writer, values):
 def delete_army(army, writer):
     with transaction.atomic():
         changes = _deleted({"name": army.name, "units": army.units.count()})
-        _record_and_touch(army.kingdom, writer, HistoryEntry.Action.ARMY_DELETED, changes, army)
-        army.delete()
+        _soft_delete(army, writer, HistoryEntry.Action.ARMY_DELETED, changes)
 
 
 def add_unit(army, writer, name):
@@ -184,10 +184,7 @@ def update_unit(unit, writer, values):
 def delete_unit(unit, writer):
     with transaction.atomic():
         changes = _deleted({"name": unit.name, "army": unit.army.name})
-        _record_and_touch(
-            unit.army.kingdom, writer, HistoryEntry.Action.UNIT_DELETED, changes, unit
-        )
-        unit.delete()
+        _soft_delete(unit, writer, HistoryEntry.Action.UNIT_DELETED, changes)
 
 
 def record_battle(kingdom, writer, values):
@@ -250,14 +247,23 @@ def update_character(character, writer, name, kind, picture):
 
 def delete_character(character, writer):
     with transaction.atomic():
-        _delete_file_after_commit(character.picture)
-        # The roles they filled become vacant, and a vacant role cannot be invested.
-        KingdomLeader.objects.filter(character=character).update(invested=False)
+        # Their roles become vacant (and a vacant role cannot be invested). The picture is kept
+        # so the character can be restored.
+        leaders = KingdomLeader.objects.filter(character=character)
+        commands = Army.all_objects.filter(commander=character)
+        heroes = Unit.all_objects.filter(hero=character)
+        restore = {
+            "leaders": [
+                [role, invested] for role, invested in leaders.values_list("role", "invested")
+            ],
+            "armies": list(commands.values_list("pk", flat=True)),
+            "units": list(heroes.values_list("pk", flat=True)),
+        }
+        leaders.update(character=None, invested=False)
+        commands.update(commander=None)
+        heroes.update(hero=None)
         changes = _deleted({"name": character.name, "kind": character.get_kind_display()})
-        _record_and_touch(
-            character.kingdom, writer, HistoryEntry.Action.CHARACTER_DELETED, changes, character
-        )
-        character.delete()
+        _soft_delete(character, writer, HistoryEntry.Action.CHARACTER_DELETED, changes, restore)
 
 
 def _delete_file_after_commit(field_file):
@@ -308,13 +314,96 @@ def _labelled(changes, row=None):
     return {f"{prefix}{field.replace('_', ' ')}": diff for field, diff in changes.items()}
 
 
-def _record_and_touch(kingdom, writer, action, changes, subject=None):
-    _record(kingdom, writer, action, changes, subject)
+def _kingdom_of(subject):
+    return subject.army.kingdom if isinstance(subject, Unit) else subject.kingdom
+
+
+def _soft_delete(subject, writer, action, changes, restore=None):
+    subject.deleted_at = timezone.now()
+    subject.save(update_fields=["deleted_at"])
+    restore = {"deleted_at": subject.deleted_at.isoformat(), **(restore or {})}
+    _record_and_touch(_kingdom_of(subject), writer, action, changes, subject, restore)
+
+
+RESTORABLE_MODELS = {
+    HistoryEntry.Action.SETTLEMENT_DELETED: Settlement,
+    HistoryEntry.Action.ARMY_DELETED: Army,
+    HistoryEntry.Action.UNIT_DELETED: Unit,
+    HistoryEntry.Action.CHARACTER_DELETED: Character,
+}
+
+
+def restorable_subject(entry):
+    """The deleted row a history entry can bring back, or None. Only the latest deletion of a row
+    can be undone, and only while the row is still deleted."""
+    model = RESTORABLE_MODELS.get(entry.action)
+    if model is None or entry.subject_id is None:
+        return None
+    rows = model.all_objects.filter(pk=entry.subject_id, deleted_at__isnull=False)
+    if model is Unit:
+        rows = rows.filter(army__kingdom=entry.kingdom)
+    else:
+        rows = rows.filter(kingdom=entry.kingdom)
+    subject = rows.first()
+    if subject and subject.deleted_at.isoformat() == entry.restore.get("deleted_at"):
+        return subject
+    return None
+
+
+def restore_deleted(entry, writer):
+    """Undo a deletion. Links it cleared, such as a garrison or leader role, are only put back
+    where nobody has filled them since. Returns the restored row, or None if it cannot be."""
+    with transaction.atomic():
+        subject = restorable_subject(entry)
+        if subject is None:
+            return None
+        subject.deleted_at = None
+        subject.save(update_fields=["deleted_at"])
+        changes = {"restored": {"old": None, "new": str(subject)}}
+        if isinstance(subject, Settlement):
+            changes.update(_relink(Army, entry.restore.get("armies"), "garrison", subject))
+        elif isinstance(subject, Character):
+            changes.update(_relink_leaders(subject, entry.restore.get("leaders", [])))
+            changes.update(_relink(Army, entry.restore.get("armies"), "commander", subject))
+            changes.update(_relink(Unit, entry.restore.get("units"), "hero", subject))
+        _record_and_touch(
+            entry.kingdom, writer, HistoryEntry.RESTORABLE[entry.action], changes, subject
+        )
+    return subject
+
+
+def _relink(model, pks, field, subject):
+    """Point `field` back at the subject on rows where it is still empty."""
+    rows = model.all_objects.filter(pk__in=pks or [], **{f"{field}__isnull": True})
+    names = sorted(str(row) for row in rows)
+    rows.update(**{field: subject})
+    label = {"garrison": "garrisoned armies", "commander": "commands", "hero": "hero of"}[field]
+    return {label: {"old": None, "new": names}} if names else {}
+
+
+def _relink_leaders(character, saved):
+    leaders = KingdomLeader.objects.filter(kingdom=character.kingdom)
+    invested = leaders.filter(invested=True).count()
+    roles = []
+    for role, was_invested in saved:
+        leader = leaders.filter(role=role, character__isnull=True).first()
+        if leader is None:
+            continue
+        leader.character = character
+        leader.invested = was_invested and invested < rules.MAX_INVESTED_LEADERS
+        invested += leader.invested
+        leader.save(update_fields=["character", "invested"])
+        roles.append(str(leader))
+    return {"leader roles": {"old": None, "new": roles}} if roles else {}
+
+
+def _record_and_touch(kingdom, writer, action, changes, subject=None, restore=None):
+    _record(kingdom, writer, action, changes, subject, restore)
     # Any change to the sheet, its statistics or settlements moves it up "Your kingdoms".
     kingdom.save(update_fields=["updated_at"])
 
 
-def _record(kingdom, writer, action, changes, subject=None):
+def _record(kingdom, writer, action, changes, subject=None, restore=None):
     HistoryEntry.objects.create(
         kingdom=kingdom,
         action=action,
@@ -323,6 +412,7 @@ def _record(kingdom, writer, action, changes, subject=None):
         subject_id=subject.pk if subject else None,
         subject_label=str(subject) if subject else "",
         changes=changes,
+        restore=restore or {},
     )
 
 

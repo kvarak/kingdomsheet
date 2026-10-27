@@ -16,6 +16,31 @@ class EditLock(models.Model):
         abstract = True
 
 
+class LiveManager(models.Manager):
+    """Leaves out deleted rows. It is each soft-deletable model's default manager, so lookups,
+    related managers and form choices never see deleted rows."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class AllObjectsManager(models.Manager):
+    """Includes deleted rows, for restoring them."""
+
+
+class SoftDelete(models.Model):
+    """Deleting only sets `deleted_at`, so the row and everything belonging to it can be restored
+    from the kingdom history. `all_objects` includes deleted rows."""
+
+    deleted_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    objects = LiveManager()
+    all_objects = AllObjectsManager()
+
+    class Meta:
+        abstract = True
+
+
 class Kingdom(EditLock):
     class Renown(models.TextChoices):
         FAME = "fame", "Fame"
@@ -110,7 +135,7 @@ class KingdomSkill(models.Model):
         return self.get_skill_display()
 
 
-class Character(models.Model):
+class Character(SoftDelete):
     """A player character or NPC with a picture, belonging to one kingdom."""
 
     class Kind(models.TextChoices):
@@ -168,7 +193,7 @@ class KingdomCommodity(models.Model):
         return self.get_commodity_display()
 
 
-class Settlement(EditLock):
+class Settlement(SoftDelete, EditLock):
     """One settlement and its urban grid, following the PF2e urban grid sheet."""
 
     class Type(models.TextChoices):
@@ -203,7 +228,7 @@ class Settlement(EditLock):
         return self.name
 
 
-class Army(EditLock):
+class Army(SoftDelete, EditLock):
     """An army roster: a named group of units belonging to a kingdom, optionally garrisoned in one
     of its settlements.
 
@@ -238,7 +263,7 @@ class Army(EditLock):
         return self.name
 
 
-class Unit(models.Model):
+class Unit(SoftDelete):
     """One unit in an army roster, as in the campaign's Kingmaker Warfare house rules (inspired by
     Strongholds & Followers). Every value is typed in by the players; only `diminished` and
     `battle_morale` are derived.
@@ -396,6 +421,14 @@ class PlayerName(models.Model):
 class HistoryEntry(models.Model):
     """A read-only record of one change. The application never edits or deletes these rows."""
 
+    # Deletions that can be undone from the history, and the action recorded when they are.
+    RESTORABLE = {
+        "settlement_deleted": "settlement_restored",
+        "army_deleted": "army_restored",
+        "unit_deleted": "unit_restored",
+        "character_deleted": "character_restored",
+    }
+
     class Action(models.TextChoices):
         KINGDOM_CREATED = "kingdom_created", "Kingdom created"
         KINGDOM_EDITED = "kingdom_edited", "Kingdom sheet edited"
@@ -419,6 +452,10 @@ class HistoryEntry(models.Model):
         CHARACTER_ADDED = "character_added", "Character added"
         CHARACTER_EDITED = "character_edited", "Character edited"
         CHARACTER_DELETED = "character_deleted", "Character deleted"
+        SETTLEMENT_RESTORED = "settlement_restored", "Settlement restored"
+        ARMY_RESTORED = "army_restored", "Army restored"
+        UNIT_RESTORED = "unit_restored", "Unit restored"
+        CHARACTER_RESTORED = "character_restored", "Character restored"
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.PROTECT, related_name="history")
     action = models.CharField(max_length=32, choices=Action.choices)
@@ -428,6 +465,8 @@ class HistoryEntry(models.Model):
     subject_id = models.PositiveBigIntegerField(null=True, blank=True)
     subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)
+    # For a restorable deletion: when it happened and the links it cleared, such as garrisons.
+    restore = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -3,6 +3,7 @@
 {% block heading %}History: {{ kingdom.name }}{% endblock %}
 {% block content %}
 <p><a href="{% url 'kingdoms:sheet' kingdom.pk %}">Back to sheet</a></p>
+<p class="hint">Deleted settlements, armies, units and characters can be restored from their latest "deleted" entry{% if not writer.verified %} by a <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:history' kingdom.pk %}">protected name</a>{% endif %}. Links they lost, such as a garrison or leader role, come back only where nobody has filled them since.</p>
 <fieldset>
   <legend>Changes</legend>
   <table>
@@ -14,7 +15,11 @@
       <tr>
         <td>{{ entry.created_at|date:"Y-m-d H:i" }}</td>
         <td>{{ entry.display_name }}{% if not entry.name_verified %} <span class="hint">(not protected)</span>{% endif %}</td>
-        <td>{{ entry.get_action_display }}</td>
+        <td>{{ entry.get_action_display }}{% if entry.can_restore and writer.verified %}
+          <form method="post" action="{% url 'kingdoms:history_restore' kingdom.pk entry.pk %}" class="inline-form">
+            {% csrf_token %}
+            <button type="submit" title="Restore {{ entry.subject_label }}">Restore</button>
+          </form>{% endif %}</td>
         <td>{{ entry.subject_label }}</td>
         <td>
           {% for field, diff in entry.changes.items %}

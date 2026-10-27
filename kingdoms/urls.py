@@ -24,6 +24,11 @@ urlpatterns = [
     ),
     path("kingdoms/<int:pk>/history/", views.history, name="history"),
     path(
+        "kingdoms/<int:pk>/history/<int:entry_pk>/restore/",
+        views.history_restore,
+        name="history_restore",
+    ),
+    path(
         "kingdoms/<int:pk>/settlements/new/",
         views.settlement_add,
         name="settlement_add",

@@ -179,17 +179,20 @@ class CharacterTests(TestCase):
         self.assertNotEqual(character.picture.name, old_file)
         self.assertFalse(character.picture.storage.exists(old_file))
 
-    def test_deleting_character_vacates_leader_and_removes_picture(self):
+    def test_deleting_character_vacates_leader_and_hides_picture(self):
         self.add_character()
         character = Character.objects.get()
         self.kingdom.leaders.filter(role="ruler").update(character=character)
         storage, name = character.picture.storage, character.picture.name
+        picture_url = reverse("kingdoms:character_picture", args=[self.kingdom.pk, character.pk])
         with self.captureOnCommitCallbacks(execute=True):
             self.client.post(
                 reverse("kingdoms:character_delete", args=[self.kingdom.pk, character.pk])
             )
         self.assertIsNone(self.kingdom.leaders.get(role="ruler").character)
-        self.assertFalse(storage.exists(name))
+        # Kept so the character can be restored from the history, but no longer served.
+        self.assertTrue(storage.exists(name))
+        self.assertEqual(self.client.get(picture_url).status_code, 404)
 
     def test_leader_dropdown_lists_pcs_and_npcs_without_free_text(self):
         self.add_character(name="Kesten Garess", kind="npc", picture=False)

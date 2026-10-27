@@ -34,7 +34,9 @@ def _roles(kingdom):
     for army in Army.objects.filter(kingdom=kingdom, commander__isnull=False):
         url = reverse("kingdoms:army", args=[kingdom.pk, army.pk])
         roles.setdefault(army.commander_id, []).append((f"Commander of {army}", url))
-    heroes = Unit.objects.filter(army__kingdom=kingdom, hero__isnull=False).select_related("army")
+    heroes = Unit.objects.filter(
+        army__kingdom=kingdom, army__deleted_at__isnull=True, hero__isnull=False
+    ).select_related("army")
     for unit in heroes:
         url = reverse("kingdoms:army", args=[kingdom.pk, unit.army_id])
         roles.setdefault(unit.hero_id, []).append((f"Hero of {unit} ({unit.army})", url))

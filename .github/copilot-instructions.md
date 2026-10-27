@@ -40,6 +40,7 @@ The campaign is played in **Varlyn**, a D&D 5e setting with its own rule twists.
 - **Everything runs in Docker.** Use the Make targets: `make serve`, `make stop`, `make check` (ruff lint and format, then the tests), `make migrate`, `make logs`. Do not install Python packages on the host.
 - Run `make check` after every change and keep it passing. Add tests for new rules and views.
 - Business logic goes in `services.py` and the rule modules, not in views or templates. Every change a player makes is recorded in the kingdom's history.
+- **Soft delete.** Settlements, armies, units and characters inherit `SoftDelete`: deleting sets `deleted_at` and records what links it cleared, so it can be restored from the history. Their default manager hides deleted rows; use `all_objects` only for restoring. Aggregates over reverse relations (such as `Count("units")`) and filters through a parent (such as units of a deleted army) must exclude deleted rows explicitly.
 - **Migrations:** keep data migrations and table changes in separate migrations (PostgreSQL refuses to alter a table in the same transaction that just updated its rows). Freeze any rule logic a data migration needs inside the migration file. Check new migrations against the local database, not only the empty test database.
 
 ## Access and safety
