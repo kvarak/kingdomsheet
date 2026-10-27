@@ -59,7 +59,8 @@
           {% endfor %}
         </tbody>
       </table>
-      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> = base {{ form.control_dc_base }} + size {{ form.control_dc_size }}</p>
+      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> <span class="hint">= {{ sheet.control_dc_parts.base }} + proficiency {{ sheet.control_dc_parts.proficiency }} + size {{ sheet.control_dc_parts.size }}{% if sheet.ruler_vacant %} + 2 vacant ruler{% endif %}</span></p>
+      <p class="hint">Calculated from the kingdom's level and size. Kingdom checks for level {{ kingdom.level }} content: DC {{ sheet.kingdom_dc }}, hard {{ sheet.kingdom_dc|add:2 }}, very hard {{ sheet.kingdom_dc|add:5 }}.</p>
     </fieldset>
 
     <fieldset>
@@ -84,10 +85,11 @@
         <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.character }}</td></tr>
+          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }} <span class="info" tabindex="0" title="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}." aria-label="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}.">&#9432;</span></td><td>{{ leader.character }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
+      {% for reminder in sheet.vacancy_reminders %}<p class="hint penalty">{{ reminder }}</p>{% endfor %}
     </fieldset>
 
     <fieldset>
@@ -115,25 +117,23 @@
       <legend>Skills</legend>
       <table>
         <thead>
-          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Status</th><th>Circ.</th><th>Item</th><th>Other</th></tr>
+          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Bonus</th><th title="Vacancy penalty from empty leadership roles">VP</th></tr>
         </thead>
         <tbody>
           {% for skill in sheet.skills %}
           <tr>
             <td>{{ skill.label }}</td>
-            <td class="calc">{{ skill.total|stringformat:"+d" }}</td>
+            <td>{% include "kingdoms/includes/skill_roll.html" %}</td>
             <td><span class="hint">{{ skill.ability }}</span> {{ skill.ability_modifier|stringformat:"+d" }}</td>
             <td class="calc">{{ skill.proficiency|stringformat:"+d" }}</td>
             <td>{{ skill.rank }}</td>
-            <td>{{ skill.status }}</td>
-            <td>{{ skill.circumstance }}</td>
-            <td>{{ skill.item }}</td>
-            <td>{{ skill.other }}</td>
+            <td>{{ skill.bonus }}</td>
+            {% include "kingdoms/includes/vacancy_cell.html" %}
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      <p class="hint">Total = ability modifier + proficiency + status + circumstance + item + other. Proficiency is level + 2, 4, 6 or 8 when trained, expert, master or legendary. Totals update after saving.</p>
+      <p class="hint">Total = ability modifier + proficiency + bonus + VP. Proficiency is the kingdom's proficiency bonus ({{ sheet.proficiency|stringformat:"+d" }} at level {{ kingdom.level }}); Expertise rolls with advantage and each step after it adds +1. A vacant general or magister gives disadvantage on Warfare. Totals update after saving.</p>
     </fieldset>
 
     <fieldset>

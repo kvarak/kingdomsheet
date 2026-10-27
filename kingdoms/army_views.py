@@ -4,7 +4,7 @@ settlement edit mode, in settlement_views.py."""
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from . import services
+from . import rules, services
 from .access import get_remembered_kingdom_or_404
 from .editing import (
     army_edit_url,
@@ -23,7 +23,7 @@ from .sheet import error_messages
 def _get_army(request, pk, spk, apk):
     kingdom = get_remembered_kingdom_or_404(request, pk)
     return get_object_or_404(
-        Army.objects.select_related("settlement__kingdom"),
+        Army.objects.select_related("settlement__kingdom", "commander"),
         pk=apk,
         settlement_id=spk,
         settlement__kingdom=kingdom,
@@ -37,6 +37,13 @@ def _context(request, army):
         "settlement": army.settlement,
         "kingdom": army.settlement.kingdom,
         "writer": writer,
+        "numbers": rules.army_numbers(
+            level=army.level,
+            armor_bonus=army.armor_bonus,
+            scouting=army.scouting,
+            maneuver=army.maneuver,
+            morale=army.morale,
+        ),
         **lock_context(army, writer),
     }
 
@@ -67,13 +74,13 @@ def army_edit(request, pk, spk, apk):
     if request.method == "GET":
         if not holds_lock(request, army):
             return redirect(army_url(army))
-        form = ArmyForm(instance=army)
+        form = ArmyForm(instance=army, kingdom=army.settlement.kingdom)
         status = 200
     else:
         writer, refused = take_lock(request, army, army_url(army))
         if refused:
             return refused
-        form = ArmyForm(request.POST)
+        form = ArmyForm(request.POST, kingdom=army.settlement.kingdom)
         if form.is_valid():
             services.update_army(army, writer, form.cleaned_data)
             return redirect(army_edit_url(army))

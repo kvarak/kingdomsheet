@@ -2,7 +2,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 
-from . import pf2e
+from . import rules
 
 
 class EditLock(models.Model):
@@ -44,8 +44,6 @@ class Kingdom(EditLock):
     resource_dice = models.CharField(max_length=20, blank=True)
     bonus_dice = models.IntegerField(default=0)
 
-    control_dc_base = models.IntegerField(default=14)
-    control_dc_size = models.IntegerField(default=0)
     unrest = models.IntegerField(default=0)
     unrest_penalty = models.IntegerField(default=0)
     consumption = models.IntegerField(default=0)
@@ -79,7 +77,7 @@ class KingdomAbility(models.Model):
     """One ability score and its ruin. Each kingdom has one row per ability."""
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="abilities")
-    ability = models.CharField(max_length=20, choices=pf2e.ABILITIES)
+    ability = models.CharField(max_length=20, choices=rules.ABILITIES)
     score = models.IntegerField(default=10)
     ruin = models.IntegerField(default=0)
     ruin_penalty = models.IntegerField(default=0)
@@ -97,12 +95,12 @@ class KingdomAbility(models.Model):
 
 class KingdomSkill(models.Model):
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="skills")
-    skill = models.CharField(max_length=20, choices=[(key, label) for key, label, _ in pf2e.SKILLS])
-    rank = models.IntegerField(default=0, choices=pf2e.PROFICIENCY_RANKS)
-    status = models.IntegerField(default=0)
-    circumstance = models.IntegerField(default=0)
-    item = models.IntegerField(default=0)
-    other = models.IntegerField(default=0)
+    skill = models.CharField(
+        max_length=20, choices=[(key, label) for key, label, _ in rules.SKILLS]
+    )
+    rank = models.IntegerField(default=0, choices=rules.PROFICIENCY_RANKS)
+    # Every other bonus or penalty on the skill (structures, invested leaders, effects).
+    bonus = models.IntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -137,7 +135,7 @@ class Character(models.Model):
 class KingdomLeader(models.Model):
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="leaders")
     role = models.CharField(
-        max_length=20, choices=[(key, label) for key, label, _ in pf2e.LEADERSHIP_ROLES]
+        max_length=20, choices=[(key, label) for key, label, _ in rules.LEADERSHIP_ROLES]
     )
     character = models.ForeignKey(
         Character, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -155,7 +153,7 @@ class KingdomLeader(models.Model):
 
 class KingdomCommodity(models.Model):
     kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="commodities")
-    commodity = models.CharField(max_length=20, choices=pf2e.COMMODITIES)
+    commodity = models.CharField(max_length=20, choices=rules.COMMODITIES)
     stored = models.IntegerField(default=0)
     capacity = models.IntegerField(default=4)
 
@@ -216,14 +214,11 @@ class Army(EditLock):
         "level",
         "alignment",
         "army_type",
+        "commander",
         "scouting",
-        "scouting_dc",
-        "recruitment_dc",
-        "ac",
         "maneuver",
-        "maneuver_dc",
         "morale",
-        "morale_dc",
+        "armor_bonus",
         "hp",
         "current_hp",
         "rout_threshold",
@@ -245,14 +240,15 @@ class Army(EditLock):
     level = models.IntegerField(default=1)
     alignment = models.CharField(max_length=30, blank=True)
     army_type = models.CharField("army type", max_length=80, blank=True)
-    scouting = models.IntegerField(default=0)
-    scouting_dc = models.IntegerField("scouting DC", default=0)
-    recruitment_dc = models.IntegerField("recruitment DC", default=0)
-    ac = models.IntegerField("AC", default=0)
-    maneuver = models.IntegerField(default=0)
-    maneuver_dc = models.IntegerField("maneuver DC", default=0)
-    morale = models.IntegerField(default=0)
-    morale_dc = models.IntegerField("morale DC", default=0)
+    commander = models.ForeignKey(
+        "Character", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    # The army type's bonuses. Modifiers, DCs, AC, attack and recruitment DC are calculated from
+    # these and the army's level, see kingdoms.rules.army_numbers.
+    scouting = models.IntegerField("scouting bonus", default=0)
+    maneuver = models.IntegerField("maneuver bonus", default=0)
+    morale = models.IntegerField("morale bonus", default=0)
+    armor_bonus = models.IntegerField(default=0)
     hp = models.IntegerField("HP", default=0)
     current_hp = models.IntegerField("current HP", default=0)
     rout_threshold = models.IntegerField(default=0)

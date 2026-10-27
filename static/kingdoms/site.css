@@ -500,3 +500,12 @@ td, th {
 .growth {
   color: #2a5a9c;
 }
+
+.info {
+  color: #2a5a9c;
+  cursor: help;
+}
+
+.penalty {
+  color: #c00;
+}

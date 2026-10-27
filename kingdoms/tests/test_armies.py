@@ -1,13 +1,16 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from ..models import Army, HistoryEntry, Kingdom, Settlement
+from ..models import Army, Character, HistoryEntry, Kingdom, Settlement
 from .helpers import PASSWORD, PLAYER_NAME
 
 
 def army_post_data(army, **overrides):
-    values = {field: getattr(army, field) for field in Army.SHEET_FIELDS}
-    return {**values, **overrides}
+    """A full army sheet POST, sending IDs for linked rows and blanks for empty ones."""
+    values = {**{field: getattr(army, field) for field in Army.SHEET_FIELDS}, **overrides}
+    return {
+        name: "" if value is None else getattr(value, "pk", value) for name, value in values.items()
+    }
 
 
 class ArmyTests(TestCase):
@@ -71,7 +74,7 @@ class ArmyTests(TestCase):
     def test_army_page_is_read_only_until_editing(self):
         response = self.client.get(self.view_url)
         self.assertContains(response, 'aria-label="Edit army"')
-        self.assertNotContains(response, 'name="ac"')
+        self.assertNotContains(response, 'name="armor_bonus"')
         self.assertRedirects(self.client.get(self.edit_url), self.view_url)
 
     def test_army_lock_is_separate_from_the_settlement_lock(self):
@@ -87,7 +90,7 @@ class ArmyTests(TestCase):
             army_post_data(
                 self.army,
                 level=3,
-                ac=18,
+                armor_bonus=2,
                 hp=4,
                 current_hp=3,
                 tactics="Defensive Tactics\nLive off the Land",
@@ -96,12 +99,27 @@ class ArmyTests(TestCase):
         )
         self.assertRedirects(response, self.edit_url)
         self.army.refresh_from_db()
-        self.assertEqual((self.army.level, self.army.ac, self.army.current_hp), (3, 18, 3))
+        self.assertEqual((self.army.level, self.army.armor_bonus, self.army.current_hp), (3, 2, 3))
         page = self.client.get(self.view_url)
         self.assertContains(page, "<li>Live off the Land</li>", html=True)
         entry = self.kingdom.history.get(action=HistoryEntry.Action.ARMY_EDITED)
         self.assertEqual(entry.subject_label, "Tatzlford Militia")
-        self.assertEqual(entry.changes["ac"], {"old": 0, "new": 18})
+        self.assertEqual(entry.changes["armor bonus"], {"old": 0, "new": 2})
+        # AC = 11 + proficiency (+2 at level 3) + armor bonus 2.
+        self.assertContains(page, '<strong class="calc">15</strong>')
+
+    def test_commander_is_one_of_the_kingdoms_characters(self):
+        self.client.post(self.start_url)
+        amiri = Character.objects.create(kingdom=self.kingdom, name="Amiri", kind="pc")
+        self.client.post(self.edit_url, army_post_data(self.army, commander=amiri))
+        self.army.refresh_from_db()
+        self.assertEqual(self.army.commander, amiri)
+        self.assertContains(self.client.get(self.view_url), "Amiri")
+
+        other = Kingdom.objects.create(name="Elsewhere", access_code="e" * 64)
+        stranger = Character.objects.create(kingdom=other, name="Spy", kind="npc")
+        response = self.client.post(self.edit_url, army_post_data(self.army, commander=stranger))
+        self.assertContains(response, "Commander:", status_code=400)
 
     def test_save_button_sits_in_the_toolbar(self):
         self.client.post(self.start_url)
@@ -118,9 +136,9 @@ class ArmyTests(TestCase):
 
     def test_editing_without_the_lock_changes_nothing(self):
         self.client.post(self.start_url)
-        self.bob.post(self.edit_url, army_post_data(self.army, ac=99))
+        self.bob.post(self.edit_url, army_post_data(self.army, armor_bonus=9))
         self.army.refresh_from_db()
-        self.assertEqual(self.army.ac, 0)
+        self.assertEqual(self.army.armor_bonus, 0)
 
     def test_army_being_edited_by_someone_else_cannot_be_deleted(self):
         self.bob.post(self.start_url)

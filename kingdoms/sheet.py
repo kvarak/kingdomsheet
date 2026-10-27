@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from . import pf2e
+from . import rules
 from .models import KingdomAbility, KingdomCommodity, KingdomLeader, KingdomSkill
 
 # Single-value fields on Kingdom that the sheet edits.
@@ -21,8 +21,6 @@ KINGDOM_FIELDS = (
     "fame_max",
     "resource_dice",
     "bonus_dice",
-    "control_dc_base",
-    "control_dc_size",
     "unrest",
     "unrest_penalty",
     "consumption",
@@ -63,25 +61,25 @@ class RowGroup:
 ABILITY_ROWS = RowGroup(
     KingdomAbility,
     "ability",
-    tuple(key for key, _ in pf2e.ABILITIES),
+    tuple(key for key, _ in rules.ABILITIES),
     ("score", "ruin", "ruin_penalty", "ruin_threshold"),
 )
 SKILL_ROWS = RowGroup(
     KingdomSkill,
     "skill",
-    tuple(key for key, _, _ in pf2e.SKILLS),
-    ("rank", "status", "circumstance", "item", "other"),
+    tuple(key for key, _, _ in rules.SKILLS),
+    ("rank", "bonus"),
 )
 LEADER_ROWS = RowGroup(
     KingdomLeader,
     "role",
-    tuple(key for key, _, _ in pf2e.LEADERSHIP_ROLES),
+    tuple(key for key, _, _ in rules.LEADERSHIP_ROLES),
     ("character", "invested"),
 )
 COMMODITY_ROWS = RowGroup(
     KingdomCommodity,
     "commodity",
-    tuple(key for key, _ in pf2e.COMMODITIES),
+    tuple(key for key, _ in rules.COMMODITIES),
     ("stored", "capacity"),
 )
 ROW_GROUPS = (ABILITY_ROWS, SKILL_ROWS, LEADER_ROWS, COMMODITY_ROWS)
@@ -115,6 +113,7 @@ def build_sheet(kingdom, form):
     abilities = ABILITY_ROWS.rows(kingdom)
     scores = {key: row.score for key, row in abilities.items()}
     leaders = LEADER_ROWS.rows(kingdom)
+    vacant = {role for role, leader in leaders.items() if leader.character_id is None}
 
     def field(group, key, name):
         return form[group.field_name(key, name)]
@@ -124,11 +123,20 @@ def build_sheet(kingdom, form):
             {
                 "label": label,
                 "score": field(ABILITY_ROWS, key, "score"),
-                "modifier": pf2e.ability_modifier(scores[key]),
+                "modifier": rules.ability_modifier(scores[key]),
             }
-            for key, label in pf2e.ABILITIES
+            for key, label in rules.ABILITIES
         ],
-        "control_dc": pf2e.control_dc(kingdom.control_dc_base, kingdom.control_dc_size),
+        "control_dc": rules.control_dc(kingdom.level, kingdom.size, ruler_vacant="ruler" in vacant),
+        "control_dc_parts": {
+            "base": rules.CONTROL_DC_BASE,
+            "proficiency": rules.proficiency_bonus(kingdom.level),
+            "size": rules.size_modifier(kingdom.size),
+        },
+        "kingdom_dc": rules.kingdom_dc(kingdom.level),
+        "proficiency": rules.proficiency_bonus(kingdom.level),
+        "ruler_vacant": "ruler" in vacant,
+        "vacancy_reminders": _vacancy_reminders(vacant),
         "ruins": [
             {
                 "label": label,
@@ -136,7 +144,7 @@ def build_sheet(kingdom, form):
                 "penalty": field(ABILITY_ROWS, key, "ruin_penalty"),
                 "threshold": field(ABILITY_ROWS, key, "ruin_threshold"),
             }
-            for key, label in pf2e.RUINS
+            for key, label in rules.RUINS
         ],
         "leaders": [
             {
@@ -144,43 +152,61 @@ def build_sheet(kingdom, form):
                 "invested": field(LEADER_ROWS, key, "invested"),
                 "character": field(LEADER_ROWS, key, "character"),
                 "saved_character": leaders[key].character,
+                "key_ability": rules.ABILITY_LABELS[ability],
+                "vacancy_penalty": rules.VACANCY_PENALTIES[key],
+                "vacant": key in vacant,
             }
-            for key, label, _ in pf2e.LEADERSHIP_ROLES
+            for key, label, ability in rules.LEADERSHIP_ROLES
         ],
-        "skills": _skill_rows(kingdom, form, scores),
+        "skills": _skill_rows(kingdom, form, scores, vacant),
         "commodities": [
             {
                 "label": label,
                 "stored": field(COMMODITY_ROWS, key, "stored"),
                 "capacity": field(COMMODITY_ROWS, key, "capacity"),
             }
-            for key, label in pf2e.COMMODITIES
+            for key, label in rules.COMMODITIES
         ],
-        "work_sites": [form[key] for key, _ in pf2e.WORK_SITES],
+        "work_sites": [form[key] for key, _ in rules.WORK_SITES],
     }
 
 
-def _skill_rows(kingdom, form, scores):
+def _vacancy_reminders(vacant):
+    """One line per effect, naming every vacant role that causes it, such as
+    "General or magister vacant: -4 to Warfare activities"."""
+    roles_by_effect = {}
+    for role, effect in rules.OTHER_VACANCY_EFFECTS.items():
+        if role in vacant:
+            roles_by_effect.setdefault(effect, []).append(rules.ROLE_LABELS[role])
+    return [
+        f"{' or '.join(roles).capitalize()} vacant: {effect}"
+        for effect, roles in roles_by_effect.items()
+    ]
+
+
+def _skill_rows(kingdom, form, scores, vacant):
     saved = SKILL_ROWS.rows(kingdom)
     rows = []
-    for key, label, ability in pf2e.SKILLS:
+    for key, label, ability in rules.SKILLS:
         skill = saved[key]
+        vacancy, disadvantage = rules.vacancy_effects(key, ability, vacant)
         rows.append(
             {
                 "label": label,
-                "ability": pf2e.ABILITY_LABELS[ability],
-                "ability_modifier": pf2e.ability_modifier(scores[ability]),
-                "proficiency": pf2e.proficiency_bonus(skill.rank, kingdom.level),
-                "rank_label": pf2e.RANK_LABELS[skill.rank],
-                "total": pf2e.skill_total(
+                "ability": rules.ABILITY_LABELS[ability],
+                "ability_modifier": rules.ability_modifier(scores[ability]),
+                "proficiency": rules.rank_bonus(skill.rank, kingdom.level),
+                "rank_label": rules.RANK_LABELS[skill.rank],
+                "total": rules.skill_total(
                     ability_score=scores[ability],
                     rank=skill.rank,
                     level=kingdom.level,
-                    status=skill.status,
-                    circumstance=skill.circumstance,
-                    item=skill.item,
-                    other=skill.other,
+                    bonus=skill.bonus,
+                    vacancy=vacancy,
                 ),
+                "roll": rules.roll_mode(rules.has_expertise(skill.rank), disadvantage),
+                "vacancy": vacancy,
+                "vacancy_disadvantage": disadvantage,
                 **{name: form[SKILL_ROWS.field_name(key, name)] for name in SKILL_ROWS.fields},
             }
         )
@@ -188,7 +214,7 @@ def _skill_rows(kingdom, form, scores):
 
 
 def error_messages(form):
-    """Flatten form errors into readable lines, such as "Agriculture status: Enter a number"."""
+    """Flatten form errors into readable lines, such as "Agriculture bonus: Enter a number"."""
     messages = list(form.non_field_errors())
     for name, errors in form.errors.items():
         if name != "__all__":

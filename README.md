@@ -1,19 +1,23 @@
 # Kingdom Sheet
 
-A small Django app for tracking kingdoms in a Kingmaker campaign. Players create a kingdom, share its access code and edit its Pathfinder 2e kingdom sheet. Every change is recorded in a history log.
+A small Django app for tracking kingdoms in a Kingmaker campaign played with the Varlyn 5e rules (dnd.rigo.nu). Players create a kingdom, share its access code and edit its kingdom sheet. Every change is recorded in a history log.
 
 ## The sheet
 
-The sheet follows the official PF2e kingdom sheet: kingdom details, ability scores, ruin, unrest, leaders, all 16 skills, feats, abilities, commodities, work sites, settlements, relations and ongoing events. Free-form custom statistics sit below it.
+The sheet follows the layout of the official Kingmaker kingdom sheet: kingdom details, ability scores, ruin, unrest, leaders, all 16 kingdom skills, feats, abilities, commodities, work sites, settlements, relations and ongoing events. Free-form custom statistics sit below it. The numbers are the Pathfinder 2e kingdom rules adapted to the Varlyn 5e scale.
 
 Only these values are calculated, and they update after saving:
 
 - Ability modifier = (score - 10) / 2, rounded down.
-- Proficiency = 0 when untrained, otherwise level + 2, 4, 6 or 8 for trained, expert, master or legendary.
-- Skill total = ability modifier + proficiency + status + circumstance + item + other.
-- Control DC = base + size.
+- Proficiency bonus by kingdom level, as for characters: +2 at levels 1-4, rising by 1 every 4 levels to +6.
+- Skill ranks: Untrained (no proficiency), Proficient (+ proficiency), Expertise (+ proficiency, roll with advantage), Expertise +1 and Expertise +2 (each step adds +1, like Varlyn's Improved Proficiency).
+- Skill total = ability modifier + proficiency + bonus + VP. Bonus holds every other bonus or penalty, such as structures and invested leaders.
+- Control DC = 12 + proficiency bonus + size modifier (+0 under 10 hexes, then +1 at 10, +2 at 25, +3 at 50 and +4 at 100), plus 2 while the ruler role is vacant.
+- Other kingdom check DCs = 12 + the proficiency bonus for the content's level, +2 when hard and +5 when very hard. The sheet shows them next to the Control DC.
+- VP (vacancy penalty) per skill, from leadership roles no character fills: a vacant ruler gives -1 to every skill, which stacks; a vacant counselor, emissary, treasurer or viceroy gives -1 to Culture, Loyalty, Economy or Stability skills; a vacant general or magister gives disadvantage on Warfare. Apart from the ruler's, vacancy penalties do not stack, so a skill takes the worst one, and disadvantage counts as worse than -1. Advantage and disadvantage cancel out.
+- Vacancy effects the skill table cannot show (the ruler's 1d4 Unrest, disadvantage on Warfare activities for a vacant general or magister and disadvantage on Region activities for a vacant warden) are listed under Leaders. Warfare activities can use other skills than Warfare, so that penalty is listed too. In edit mode, the ⓘ next to each role shows its key ability and vacancy penalty.
 
-Everything else, such as ruin and unrest penalties, vacancy penalties, storage limits and resource dice, is typed in by hand.
+Everything else, such as ruin and unrest penalties, storage limits and resource dice, is typed in by hand.
 
 ## How access works
 
@@ -122,14 +126,24 @@ Each settlement has its own page with the PF2e urban grid: 3 x 3 blocks of 2 x 2
 
 ## Armies
 
-Armies are garrisoned in settlements, the way settlements belong to kingdoms. Each army has its own page following the PF2e army sheet: level, alignment, type, scouting, recruitment DC, AC, maneuver, morale, HP, rout threshold, melee, ranged, shots, tactics, tactical actions, conditions, abilities, gear and healing potions (max 3). All values are typed in by hand.
+Armies are garrisoned in settlements, the way settlements belong to kingdoms. Each army has its own page following the layout of the Kingmaker army sheet: level, alignment, type, commander, scouting, recruitment DC, AC, maneuver, morale, HP, rout threshold, melee, ranged, shots, tactics, tactical actions, conditions, abilities, gear and healing potions (max 3).
+
+The numbers use the Varlyn 5e scale and are calculated from the army's level and its type bonuses:
+
+- Proficiency bonus by army level, as for characters (+2 to +6).
+- AC = 11 + proficiency + armor bonus. Attack = proficiency + 3.
+- Scouting, maneuver and morale = proficiency + the army type's bonus. Their DCs = 8 + the modifier, like Varlyn's combat save DCs.
+- Recruitment DC = 12 + proficiency.
+- The commander is one of the kingdom's characters. Leading an army takes a Varlyn Leadership trait: Raise Company (about 100 soldiers), Command (1,000 or more) or Marshal (a national army).
+
+Everything else, such as HP, rout threshold and gear, is typed in by hand.
 
 - Add or delete armies from the settlement page in settlement edit mode. An army that someone else is editing cannot be deleted, and neither can its settlement.
 - Editing an army uses its own cogwheel and lock, separate from the settlement's and the kingdom's.
 
 ## Characters
 
-Each kingdom has its own list of characters, both player characters (PCs) and NPCs, linked as "Characters" in the Kingdom box. A character has a name, PC or NPC, and an optional picture. Leader roles on the kingdom sheet are filled by picking a character, or left vacant.
+Each kingdom has its own list of characters, both player characters (PCs) and NPCs, linked as "Characters" in the Kingdom box. A character has a name, a kind (PC or NPC) and an optional picture. Leader roles on the kingdom sheet are filled by picking a character, or left vacant.
 
 - Any protected name in the kingdom can add, rename, change, replace the picture of or delete a character. Deleting a character leaves its leader roles vacant.
 - Uploads (JPEG, PNG, GIF or WebP, up to 10 MB) are shrunk to at most 512 pixels on the longest side and stored as WebP, which keeps them small on a Raspberry Pi and strips metadata such as GPS positions.
@@ -159,7 +173,7 @@ The command prompts for the password twice without echoing it.
 ## Layout
 
 - `config/`: Django settings and URLs.
-- `kingdoms/`: models, forms, views and tests. `pf2e.py` holds the sheet's skills, roles and arithmetic; `sheet.py` maps the sheet onto models and form fields.
+- `kingdoms/`: models, forms, views and tests. `rules.py` holds the kingdom and army rules and arithmetic (Pathfinder 2e structure on the Varlyn 5e scale); `sheet.py` maps the sheet onto models and form fields.
 - `templates/kingdoms/`, `static/kingdoms/`: plain HTML and CSS.
 - `Dockerfile`, `docker-compose.yml`, `Makefile`: container and task setup.
 - `requirements.in` and `requirements-dev.in`: dependency sources. The `.txt` files are pinned locks.

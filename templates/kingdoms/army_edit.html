@@ -26,15 +26,14 @@
         <label>Alignment {{ form.alignment }}</label>
         <label>Army type {{ form.army_type }}</label>
         <br>
+        <label>Commander {{ form.commander }}</label>
+        <p class="hint">Leading an army takes a Varlyn Leadership trait: Raise Company (about 100 soldiers), Command (1,000 or more) or Marshal (a national army). Rousing Speech and Improve Morale can help with Morale.</p>
+        <p class="hint">Army type bonuses. Proficiency {{ numbers.proficiency|stringformat:"+d" }} from level {{ army.level }} is added to each; a DC is 8 + the modifier.</p>
         <label>Scouting {{ form.scouting }}</label>
-        <label>Scouting DC {{ form.scouting_dc }}</label>
-        <label>Recruitment DC {{ form.recruitment_dc }}</label>
-        <br>
-        <label>AC {{ form.ac }}</label>
         <label>Maneuver {{ form.maneuver }}</label>
-        <label>Maneuver DC {{ form.maneuver_dc }}</label>
         <label>Morale {{ form.morale }}</label>
-        <label>Morale DC {{ form.morale_dc }}</label>
+        <label>Armor bonus {{ form.armor_bonus }}</label>
+        <p class="hint">Saved values: AC {{ numbers.ac }} (11 + proficiency + armor), attack {{ numbers.attack|stringformat:"+d" }} (proficiency + 3), scouting {{ numbers.scouting|stringformat:"+d" }} (DC {{ numbers.scouting_dc }}), maneuver {{ numbers.maneuver|stringformat:"+d" }} (DC {{ numbers.maneuver_dc }}), morale {{ numbers.morale|stringformat:"+d" }} (DC {{ numbers.morale_dc }}), recruitment DC {{ numbers.recruitment_dc }}.</p>
         <br>
         <label>HP {{ form.hp }}</label>
         <label>Current HP {{ form.current_hp }}</label>

@@ -51,7 +51,8 @@
           {% endfor %}
         </tbody>
       </table>
-      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> <span class="hint">= base {{ kingdom.control_dc_base }} + size {{ kingdom.control_dc_size }}</span></p>
+      <p>Control DC <strong class="calc">{{ sheet.control_dc }}</strong> <span class="hint">= {{ sheet.control_dc_parts.base }} + proficiency {{ sheet.control_dc_parts.proficiency }} + size {{ sheet.control_dc_parts.size }}{% if sheet.ruler_vacant %} + 2 vacant ruler{% endif %}</span></p>
+      <p class="hint">Kingdom checks for level {{ kingdom.level }} content: DC {{ sheet.kingdom_dc }}, hard {{ sheet.kingdom_dc|add:2 }}, very hard {{ sheet.kingdom_dc|add:5 }}.</p>
     </fieldset>
 
     <fieldset>
@@ -77,6 +78,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% for reminder in sheet.vacancy_reminders %}<p class="hint penalty">{{ reminder }}</p>{% endfor %}
     </fieldset>
 
     <fieldset>
@@ -104,20 +106,18 @@
       <legend>Skills</legend>
       <table>
         <thead>
-          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Status</th><th>Circ.</th><th>Item</th><th>Other</th></tr>
+          <tr><th>Skill</th><th>Total</th><th>Ability</th><th>Prof</th><th>Rank</th><th>Bonus</th><th title="Vacancy penalty from empty leadership roles">VP</th></tr>
         </thead>
         <tbody>
           {% for skill in sheet.skills %}
           <tr>
             <td>{{ skill.label }}</td>
-            <td class="calc">{{ skill.total|stringformat:"+d" }}</td>
+            <td>{% include "kingdoms/includes/skill_roll.html" %}</td>
             <td><span class="hint">{{ skill.ability }}</span> {{ skill.ability_modifier|stringformat:"+d" }}</td>
             <td>{{ skill.proficiency|stringformat:"+d" }}</td>
             <td>{{ skill.rank_label }}</td>
-            <td>{{ skill.status.value }}</td>
-            <td>{{ skill.circumstance.value }}</td>
-            <td>{{ skill.item.value }}</td>
-            <td>{{ skill.other.value }}</td>
+            <td>{{ skill.bonus.value }}</td>
+            {% include "kingdoms/includes/vacancy_cell.html" %}
           </tr>
           {% endfor %}
         </tbody>

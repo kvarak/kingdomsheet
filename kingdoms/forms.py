@@ -123,6 +123,12 @@ class ArmyForm(forms.ModelForm):
             "abilities": forms.Textarea(attrs={"rows": 4}),
         }
 
+    def __init__(self, *args, kingdom, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Commanders may only be this kingdom's characters.
+        self.fields["commander"].queryset = Character.objects.filter(kingdom=kingdom)
+        self.fields["commander"].empty_label = "None"
+
 
 class CharacterForm(forms.Form):
     name = forms.CharField(max_length=80)

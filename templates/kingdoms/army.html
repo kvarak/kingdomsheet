@@ -14,14 +14,15 @@
       <legend>Army</legend>
       <p><span class="hint">Level</span> <strong>{{ army.level }}</strong> &middot; <span class="hint">Alignment</span> {{ army.alignment|default:"-" }}</p>
       <p><span class="hint">Army type</span> {{ army.army_type|default:"-" }}</p>
-      <p><span class="hint">Scouting</span> {{ army.scouting|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.scouting_dc }}</p>
-      <p><span class="hint">Recruitment DC</span> {{ army.recruitment_dc }}</p>
-      <p><span class="hint">AC</span> <strong>{{ army.ac }}</strong></p>
-      <p><span class="hint">Maneuver</span> {{ army.maneuver|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.maneuver_dc }}</p>
-      <p><span class="hint">Morale</span> {{ army.morale|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ army.morale_dc }}</p>
+      <p><span class="hint">Commander</span> {% if army.commander %}{% include "kingdoms/includes/character_avatar.html" with character=army.commander %} {{ army.commander.name }}{% else %}none{% endif %}</p>
+      <p><span class="hint">Proficiency</span> {{ numbers.proficiency|stringformat:"+d" }} &middot; <span class="hint">Recruitment DC</span> {{ numbers.recruitment_dc }}</p>
+      <p><span class="hint">AC</span> <strong class="calc">{{ numbers.ac }}</strong> &middot; <span class="hint">Attack</span> <strong class="calc">{{ numbers.attack|stringformat:"+d" }}</strong></p>
+      <p><span class="hint">Scouting</span> {{ numbers.scouting|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.scouting_dc }}</p>
+      <p><span class="hint">Maneuver</span> {{ numbers.maneuver|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.maneuver_dc }}</p>
+      <p><span class="hint">Morale</span> {{ numbers.morale|stringformat:"+d" }} &middot; <span class="hint">DC</span> {{ numbers.morale_dc }}</p>
       <p><span class="hint">HP</span> <strong>{{ army.current_hp }}</strong> / {{ army.hp }} &middot; <span class="hint">Rout threshold</span> {{ army.rout_threshold }}</p>
-      <p><span class="hint">Melee</span> {{ army.melee|default:"-" }}</p>
-      <p><span class="hint">Ranged</span> {{ army.ranged|default:"-" }} &middot; <span class="hint">Shots</span> {{ army.shots }}</p>
+      <p><span class="hint">Melee</span> {{ army.melee|default:"-" }} {{ numbers.attack|stringformat:"+d" }}</p>
+      <p><span class="hint">Ranged</span> {{ army.ranged|default:"-" }} {% if army.ranged %}{{ numbers.attack|stringformat:"+d" }} {% endif %}&middot; <span class="hint">Shots</span> {{ army.shots }}</p>
     </fieldset>
     <fieldset class="value-list">
       <legend>Gear</legend>

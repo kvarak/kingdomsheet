@@ -1,0 +1,2 @@
+{% comment %}A skill total with its roll mode, such as "+7 adv". Needs skill.{% endcomment %}
+<span class="calc">{{ skill.total|stringformat:"+d" }}</span>{% if skill.roll == "advantage" %} <span class="roll" title="Expertise: roll with advantage">adv</span>{% elif skill.roll == "disadvantage" %} <span class="roll penalty" title="Vacant general or magister: roll with disadvantage">dis</span>{% endif %}

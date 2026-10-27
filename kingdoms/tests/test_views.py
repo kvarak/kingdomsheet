@@ -172,10 +172,10 @@ class KingdomViewTests(TestCase):
         kingdom = self.create_kingdom()
         response = self.client.post(
             reverse("kingdoms:edit", args=[kingdom.pk]),
-            sheet_post_data(kingdom, name="", agriculture_status="lots"),
+            sheet_post_data(kingdom, name="", agriculture_bonus="lots"),
         )
         self.assertContains(response, "Name: This field is required", status_code=400)
-        self.assertContains(response, "Agriculture status: Enter a whole number", status_code=400)
+        self.assertContains(response, "Agriculture bonus: Enter a whole number", status_code=400)
         kingdom.refresh_from_db()
         self.assertEqual(kingdom.name, "Stolen Lands")
 

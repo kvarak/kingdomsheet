@@ -1,0 +1,1 @@
+<td class="calc{% if skill.vacancy or skill.vacancy_disadvantage %} penalty{% endif %}">{% if skill.vacancy_disadvantage %}dis{% if skill.vacancy %} {{ skill.vacancy }}{% endif %}{% else %}{{ skill.vacancy }}{% endif %}</td>
