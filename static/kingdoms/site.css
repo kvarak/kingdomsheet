@@ -9,6 +9,12 @@ body {
 
 fieldset {
   margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Two columns inside a box, such as the Kingdom box. */
+fieldset .page-columns {
+  margin: 0;
 }
 
 label {
@@ -445,25 +451,25 @@ td, th {
   font-size: 0.9rem;
 }
 
-.npc-cards {
+.character-cards {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
 
-.npc-card {
+.character-card {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   width: 12rem;
 }
 
-.npc-card input[type="text"] {
+.character-card input[type="text"] {
   width: 100%;
   box-sizing: border-box;
 }
 
-.npc-picture {
+.character-picture {
   width: 12rem;
   height: 12rem;
   object-fit: cover;
@@ -471,14 +477,14 @@ td, th {
   background: #eee;
 }
 
-.npc-no-picture {
+.character-no-picture {
   display: flex;
   align-items: center;
   justify-content: center;
   color: #888;
 }
 
-.npc-avatar {
+.character-avatar {
   width: 1.8rem;
   height: 1.8rem;
   object-fit: cover;

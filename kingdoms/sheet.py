@@ -55,8 +55,8 @@ class RowGroup:
 
     def rows(self, kingdom):
         rows = self.model.objects.filter(kingdom=kingdom)
-        if "npc" in self.fields:
-            rows = rows.select_related("npc")
+        if "character" in self.fields:
+            rows = rows.select_related("character")
         return {getattr(row, self.key_field): row for row in rows}
 
 
@@ -76,7 +76,7 @@ LEADER_ROWS = RowGroup(
     KingdomLeader,
     "role",
     tuple(key for key, _, _ in pf2e.LEADERSHIP_ROLES),
-    ("npc", "character", "invested"),
+    ("character", "invested"),
 )
 COMMODITY_ROWS = RowGroup(
     KingdomCommodity,
@@ -142,9 +142,8 @@ def build_sheet(kingdom, form):
             {
                 "label": label,
                 "invested": field(LEADER_ROWS, key, "invested"),
-                "npc": field(LEADER_ROWS, key, "npc"),
                 "character": field(LEADER_ROWS, key, "character"),
-                "saved_npc": leaders[key].npc,
+                "saved_character": leaders[key].character,
             }
             for key, label, _ in pf2e.LEADERSHIP_ROLES
         ],

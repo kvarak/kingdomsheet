@@ -1,4 +1,4 @@
-"""NPC pictures: every upload is checked, downscaled and re-encoded before it is stored.
+"""Character pictures: every upload is checked, downscaled and re-encoded before it is stored.
 
 Storing small WebP files keeps disk, memory and bandwidth low on a Raspberry Pi. Re-encoding
 also strips metadata such as GPS positions from phone photos.

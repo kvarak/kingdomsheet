@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import army_views, npc_views, settlement_views, views
+from . import army_views, character_views, settlement_views, views
 
 app_name = "kingdoms"
 
@@ -89,14 +89,22 @@ urlpatterns = [
         settlement_views.building_remove,
         name="building_remove",
     ),
-    path("kingdoms/<int:pk>/npcs/", npc_views.npcs, name="npcs"),
-    path("kingdoms/<int:pk>/npcs/new/", npc_views.npc_add, name="npc_add"),
-    path("kingdoms/<int:pk>/npcs/<int:npc_pk>/", npc_views.npc_edit, name="npc_edit"),
-    path("kingdoms/<int:pk>/npcs/<int:npc_pk>/delete/", npc_views.npc_delete, name="npc_delete"),
+    path("kingdoms/<int:pk>/characters/", character_views.characters, name="characters"),
+    path("kingdoms/<int:pk>/characters/new/", character_views.character_add, name="character_add"),
     path(
-        "kingdoms/<int:pk>/npcs/<int:npc_pk>/picture/",
-        npc_views.npc_picture,
-        name="npc_picture",
+        "kingdoms/<int:pk>/characters/<int:character_pk>/",
+        character_views.character_edit,
+        name="character_edit",
+    ),
+    path(
+        "kingdoms/<int:pk>/characters/<int:character_pk>/delete/",
+        character_views.character_delete,
+        name="character_delete",
+    ),
+    path(
+        "kingdoms/<int:pk>/characters/<int:character_pk>/picture/",
+        character_views.character_picture,
+        name="character_picture",
     ),
     path("names/", views.names, name="names"),
     path("names/forget/", views.forget_selected_name, name="forget_name"),

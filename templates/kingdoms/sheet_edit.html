@@ -18,10 +18,10 @@
 </div>
 {% endif %}
 
-<div class="page-columns">
-  <div class="col-half">
-    <fieldset>
-      <legend>Kingdom</legend>
+<fieldset>
+  <legend>Kingdom</legend>
+  <div class="page-columns">
+    <div class="col-half">
       <div class="sheet-header">
         <label>Kingdom name {{ form.name }}</label>
         <label>Charter {{ form.charter }}</label>
@@ -36,19 +36,16 @@
       <label>{{ form.renown }} {{ form.fame }} <span class="hint">max</span> {{ form.fame_max }}</label>
       <label>Resource dice {{ form.resource_dice }}</label>
       <label>Bonus dice {{ form.bonus_dice }}</label>
-    </fieldset>
-  </div>
-  <div class="col-half">
-    <fieldset>
-      <legend>Description and notes</legend>
+      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a></p>
+    </div>
+    <div class="col-half">
       <label for="{{ form.description.id_for_label }}">Description</label>
       {{ form.description }}
       <label for="{{ form.notes.id_for_label }}">Notes</label>
       {{ form.notes }}
-    </fieldset>
+    </div>
   </div>
-</div>
-
+</fieldset>
 
 <div class="page-columns">
   <div class="col-left">
@@ -82,12 +79,12 @@
 
     <fieldset>
       <legend>Leaders</legend>
-      <p class=\"hint\">Pick an NPC, or type a name for a player character. <a href=\"{% url 'kingdoms:npcs' kingdom.pk %}\">Manage NPCs</a></p>
+      <p class="hint">Pick a PC or NPC from the kingdom's characters. <a href="{% url 'kingdoms:characters' kingdom.pk %}">Manage characters</a></p>
       <table>
         <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.npc }} <span class="hint">or</span> {{ leader.character }}</td></tr>
+          <tr><td>{{ leader.invested }}</td><td>{{ leader.label }}</td><td>{{ leader.character }}</td></tr>
           {% endfor %}
         </tbody>
       </table>

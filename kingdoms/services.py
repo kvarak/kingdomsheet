@@ -2,7 +2,15 @@ from django.db import IntegrityError, models, transaction
 
 from . import growth
 from .access import new_access_code
-from .models import Army, HistoryEntry, Kingdom, Npc, Placement, Settlement, Statistic
+from .models import (
+    Army,
+    Character,
+    HistoryEntry,
+    Kingdom,
+    Placement,
+    Settlement,
+    Statistic,
+)
 from .settlements import DETAIL_FIELDS, LOT_NAMES, building_label
 from .sheet import KINGDOM_FIELDS, ROW_GROUPS, create_rows, field_values
 
@@ -165,39 +173,49 @@ def delete_army(army, writer):
         army.delete()
 
 
-def add_npc(kingdom, writer, name, picture):
+def add_character(kingdom, writer, name, kind, picture):
     with transaction.atomic():
-        npc = Npc(kingdom=kingdom, name=name)
+        character = Character(kingdom=kingdom, name=name, kind=kind)
         if picture:
-            npc.picture.save(picture.name, picture, save=False)
-        npc.save()
-        changes = _created({"name": name, "picture": bool(picture)})
-        _record_and_touch(kingdom, writer, HistoryEntry.Action.NPC_ADDED, changes, npc)
-    return npc
+            character.picture.save(picture.name, picture, save=False)
+        character.save()
+        changes = _created(
+            {"name": name, "kind": character.get_kind_display(), "picture": bool(picture)}
+        )
+        _record_and_touch(kingdom, writer, HistoryEntry.Action.CHARACTER_ADDED, changes, character)
+    return character
 
 
-def update_npc(npc, writer, name, picture):
-    """Rename the NPC and, if `picture` is given, replace its picture."""
+def update_character(character, writer, name, kind, picture):
+    """Rename the character, change PC or NPC and, if `picture` is given, replace its picture."""
     with transaction.atomic():
         changes = {}
-        if name != npc.name:
-            changes["name"] = {"old": npc.name, "new": name}
-            npc.name = name
+        if name != character.name:
+            changes["name"] = {"old": character.name, "new": name}
+            character.name = name
+        if kind != character.kind:
+            old_kind = character.get_kind_display()
+            character.kind = kind
+            changes["kind"] = {"old": old_kind, "new": character.get_kind_display()}
         if picture:
-            _delete_file_after_commit(npc.picture)
-            npc.picture.save(picture.name, picture, save=False)
+            _delete_file_after_commit(character.picture)
+            character.picture.save(picture.name, picture, save=False)
             changes["picture"] = {"old": "previous picture", "new": "new picture"}
         if changes:
-            npc.save()
-            _record_and_touch(npc.kingdom, writer, HistoryEntry.Action.NPC_EDITED, changes, npc)
+            character.save()
+            _record_and_touch(
+                character.kingdom, writer, HistoryEntry.Action.CHARACTER_EDITED, changes, character
+            )
 
 
-def delete_npc(npc, writer):
+def delete_character(character, writer):
     with transaction.atomic():
-        _delete_file_after_commit(npc.picture)
-        changes = _deleted({"name": npc.name})
-        _record_and_touch(npc.kingdom, writer, HistoryEntry.Action.NPC_DELETED, changes, npc)
-        npc.delete()
+        _delete_file_after_commit(character.picture)
+        changes = _deleted({"name": character.name, "kind": character.get_kind_display()})
+        _record_and_touch(
+            character.kingdom, writer, HistoryEntry.Action.CHARACTER_DELETED, changes, character
+        )
+        character.delete()
 
 
 def _delete_file_after_commit(field_file):
@@ -275,5 +293,5 @@ def _deleted(values):
 
 
 def _json(value):
-    """History is stored as JSON, so linked rows such as an NPC are recorded by name."""
+    """History is stored as JSON, so linked rows such as a character are recorded by name."""
     return str(value) if isinstance(value, models.Model) else value

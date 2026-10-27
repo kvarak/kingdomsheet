@@ -4,7 +4,7 @@ from django.forms.models import fields_for_model
 from . import growth, pictures
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
-from .models import Army, Kingdom, Npc, Placement, Settlement
+from .models import Army, Character, Kingdom, Placement, Settlement
 from .sheet import KINGDOM_FIELDS, LEADER_ROWS, ROW_GROUPS
 
 PASSWORD_MIN_LENGTH = 8
@@ -35,10 +35,12 @@ class SheetForm(forms.Form):
                 # Each call returns fresh field objects, so rows never share widgets.
                 for name, field in fields_for_model(group.model, fields=group.fields).items():
                     self.fields[group.field_name(key, name)] = field
-        npcs = Npc.objects.filter(kingdom=kingdom)
+        characters = Character.objects.filter(kingdom=kingdom)
         for key in LEADER_ROWS.keys:
-            # Leaders may only be this kingdom's NPCs.
-            self.fields[LEADER_ROWS.field_name(key, "npc")].queryset = npcs
+            # Leaders may only be this kingdom's characters.
+            field = self.fields[LEADER_ROWS.field_name(key, "character")]
+            field.queryset = characters
+            field.empty_label = "Vacant"
         _join_form(self)
 
 
@@ -122,8 +124,11 @@ class ArmyForm(forms.ModelForm):
         }
 
 
-class NpcForm(forms.Form):
+class CharacterForm(forms.Form):
     name = forms.CharField(max_length=80)
+    kind = forms.ChoiceField(
+        choices=Character.Kind.choices, initial=Character.Kind.NPC, widget=forms.RadioSelect
+    )
     picture = forms.FileField(
         required=False,
         widget=forms.ClearableFileInput(

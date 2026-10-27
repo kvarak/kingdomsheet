@@ -67,7 +67,7 @@ Other targets:
 | `make logs` | Follow service logs |
 | `make reset-password NAME="Alice"` | Set a new password for a player who lost theirs (prompts for it) |
 
-PostgreSQL is not published to the host. Only the web app listens, on `127.0.0.1:8000`. Database data lives in the `db-data` volume and uploaded NPC pictures in the `media-data` volume. Back up both.
+PostgreSQL is not published to the host. Only the web app listens, on `127.0.0.1:8000`. Database data lives in the `db-data` volume and uploaded character pictures in the `media-data` volume. Back up both.
 
 ## Deploying the published image
 
@@ -127,11 +127,11 @@ Armies are garrisoned in settlements, the way settlements belong to kingdoms. Ea
 - Add or delete armies from the settlement page in settlement edit mode. An army that someone else is editing cannot be deleted, and neither can its settlement.
 - Editing an army uses its own cogwheel and lock, separate from the settlement's and the kingdom's.
 
-## NPCs
+## Characters
 
-Each kingdom has its own NPC list, linked as "NPCs" under the page title on the kingdom's pages. An NPC has a name and an optional picture, and can fill any leader role on the kingdom sheet. Leader roles can also take a typed name, for player characters.
+Each kingdom has its own list of characters, both player characters (PCs) and NPCs, linked as "Characters" in the Kingdom box. A character has a name, PC or NPC, and an optional picture. Leader roles on the kingdom sheet are filled by picking a character, or left vacant.
 
-- Any protected name in the kingdom can add, rename, replace the picture of or delete an NPC. Deleting an NPC leaves its leader roles vacant.
+- Any protected name in the kingdom can add, rename, change, replace the picture of or delete a character. Deleting a character leaves its leader roles vacant.
 - Uploads (JPEG, PNG, GIF or WebP, up to 10 MB) are shrunk to at most 512 pixels on the longest side and stored as WebP, which keeps them small on a Raspberry Pi and strips metadata such as GPS positions.
 - Pictures are served by the app to the kingdom's members only. A reverse proxy in front of the app must accept request bodies of at least 10 MB (nginx defaults to 1 MB: set `client_max_body_size 10m;`).
 

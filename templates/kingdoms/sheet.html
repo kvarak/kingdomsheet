@@ -10,10 +10,10 @@
 <p><strong>{{ writer.display_name }}</strong> <span class="hint">(not protected)</span>. <a href="{% url 'kingdoms:names' %}?next={% url 'kingdoms:sheet' kingdom.pk %}">Protect your name</a> to edit this kingdom.</p>
 {% endif %}
 
-<div class="page-columns">
-  <div class="col-half">
-    <fieldset class="value-list">
-      <legend>Kingdom</legend>
+<fieldset>
+  <legend>Kingdom</legend>
+  <div class="page-columns">
+    <div class="col-half value-list">
       <p><span class="hint">Charter</span> {{ kingdom.charter|default:"-" }}</p>
       <p><span class="hint">Heartland</span> {{ kingdom.heartland|default:"-" }}</p>
       <p><span class="hint">Government</span> {{ kingdom.government|default:"-" }}</p>
@@ -29,16 +29,15 @@
         <span class="hint">Resource dice</span> {{ kingdom.resource_dice|default:"-" }} &middot;
         <span class="hint">Bonus dice</span> {{ kingdom.bonus_dice }}
       </p>
-    </fieldset>
-  </div>
-  <div class="col-half">
-    <fieldset>
-      <legend>Description and notes</legend>
+      <p><a href="{% url 'kingdoms:characters' kingdom.pk %}">Characters</a></p>
+    </div>
+    <div class="col-half">
+      <p class="hint">Description</p>
       <p>{{ kingdom.description|default:"No description."|linebreaksbr }}</p>
       {% if kingdom.notes %}<p class="hint">Notes</p><p>{{ kingdom.notes|linebreaksbr }}</p>{% endif %}
-    </fieldset>
+    </div>
   </div>
-</div>
+</fieldset>
 
 <div class="page-columns">
   <div class="col-left">
@@ -74,7 +73,7 @@
         <thead><tr><th>Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{% if leader.saved_npc %}{% include "kingdoms/includes/npc_avatar.html" with npc=leader.saved_npc %} {{ leader.saved_npc.name }}{% else %}{{ leader.character.value|default:"Vacant" }}{% endif %}</td></tr>
+          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{% if leader.saved_character %}{% include "kingdoms/includes/character_avatar.html" with character=leader.saved_character %} {{ leader.saved_character.name }}{% else %}Vacant{% endif %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

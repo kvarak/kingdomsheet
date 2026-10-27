@@ -2,7 +2,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .. import pf2e
-from ..models import HistoryEntry, Kingdom
+from ..models import Character, HistoryEntry, Kingdom
 from .helpers import PASSWORD, PLAYER_NAME, sheet_post_data
 
 
@@ -65,6 +65,7 @@ class KingdomSheetTests(TestCase):
             self.assertContains(response, text)
 
     def test_saving_updates_values_totals_and_history(self):
+        kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="pc")
         response = self.client.post(
             self.edit_url,
             sheet_post_data(
@@ -73,7 +74,7 @@ class KingdomSheetTests(TestCase):
                 economy_score=14,
                 trade_rank=1,
                 trade_item=1,
-                ruler_character="Kesten",
+                ruler_character=kesten,
                 ruler_invested=True,
                 control_dc_base=16,
                 control_dc_size=1,
@@ -85,7 +86,7 @@ class KingdomSheetTests(TestCase):
         self.assertEqual(self.skill_row(page, "Trade")["total"], 2 + 5 + 1)
         self.assertEqual(page.context["sheet"]["control_dc"], 17)
         leader = self.kingdom.leaders.get(role="ruler")
-        self.assertEqual((leader.character, leader.invested), ("Kesten", True))
+        self.assertEqual((leader.character, leader.invested), (kesten, True))
 
         entry = self.kingdom.history.get(action=HistoryEntry.Action.KINGDOM_EDITED)
         self.assertEqual(entry.changes["Trade rank"], {"old": 0, "new": 1})

@@ -113,18 +113,22 @@ class KingdomSkill(models.Model):
         return self.get_skill_display()
 
 
-class Npc(models.Model):
-    """A named character with a picture, belonging to one kingdom."""
+class Character(models.Model):
+    """A player character or NPC with a picture, belonging to one kingdom."""
 
-    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="npcs")
+    class Kind(models.TextChoices):
+        PC = "pc", "PC"
+        NPC = "npc", "NPC"
+
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="characters")
     name = models.CharField(max_length=80)
+    kind = models.CharField(max_length=3, choices=Kind.choices, default=Kind.NPC)
     # Always a downscaled WebP made by kingdoms.pictures, stored under a random name.
-    picture = models.FileField(upload_to="npcs/", blank=True)
+    picture = models.FileField(upload_to="characters/", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["name", "id"]
-        verbose_name = "NPC"
+        ordering = ["kind", "name", "id"]
 
     def __str__(self):
         return self.name
@@ -135,10 +139,9 @@ class KingdomLeader(models.Model):
     role = models.CharField(
         max_length=20, choices=[(key, label) for key, label, _ in pf2e.LEADERSHIP_ROLES]
     )
-    npc = models.ForeignKey(
-        Npc, null=True, blank=True, on_delete=models.SET_NULL, related_name="+", verbose_name="NPC"
+    character = models.ForeignKey(
+        Character, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
-    character = models.CharField(max_length=80, blank=True)
     invested = models.BooleanField(default=False)
 
     class Meta:
@@ -347,15 +350,15 @@ class HistoryEntry(models.Model):
         ARMY_ADDED = "army_added", "Army added"
         ARMY_EDITED = "army_edited", "Army edited"
         ARMY_DELETED = "army_deleted", "Army deleted"
-        NPC_ADDED = "npc_added", "NPC added"
-        NPC_EDITED = "npc_edited", "NPC edited"
-        NPC_DELETED = "npc_deleted", "NPC deleted"
+        CHARACTER_ADDED = "character_added", "Character added"
+        CHARACTER_EDITED = "character_edited", "Character edited"
+        CHARACTER_DELETED = "character_deleted", "Character deleted"
 
     kingdom = models.ForeignKey(Kingdom, on_delete=models.PROTECT, related_name="history")
     action = models.CharField(max_length=32, choices=Action.choices)
     display_name = models.CharField(max_length=40)
     name_verified = models.BooleanField()
-    # What the entry is about besides the kingdom itself: a statistic, settlement, army or NPC.
+    # What the entry is about besides the kingdom: a statistic, settlement, army or character.
     subject_id = models.PositiveBigIntegerField(null=True, blank=True)
     subject_label = models.CharField(max_length=120, blank=True)
     changes = models.JSONField(default=dict)
