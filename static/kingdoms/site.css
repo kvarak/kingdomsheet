@@ -640,11 +640,28 @@ td, th {
   color: #c00;
 }
 
-.notes-warnings {
+.notes-warnings, .notes-consequences, .notes-reminders {
   font-size: 0.75rem;
   line-height: 1.3;
-  color: #c00;
   margin: 0.25rem 0;
+}
+
+.notes-warnings {
+  color: #c00;
+}
+
+.notes-consequences {
+  color: #e07b00;
+}
+
+.notes-reminders {
+  color: #2e7d32;
+}
+
+.character-reminder {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .unit-summary {

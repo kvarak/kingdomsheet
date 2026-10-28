@@ -24,6 +24,7 @@
             <label>New picture <input type="file" name="{{ form.picture.html_name }}" accept="image/jpeg,image/png,image/gif,image/webp"></label>{{ form.picture.errors }}
           </div>
           <label class="character-notes">Notes {{ form.notes }}</label>{{ form.notes.errors }}
+          <label class="character-reminder">{{ form.reminder }} {{ form.reminder.label }}</label>
         </form>
         <div class="card-actions">
           <button type="submit" form="character-{{ character.pk }}">Save</button>

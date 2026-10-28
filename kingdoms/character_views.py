@@ -27,7 +27,12 @@ def _characters_url(pk):
 def _edit_form(character, edit_forms):
     """The form for one character, reusing a bound form when validation failed."""
     return edit_forms.get(character.pk) or CharacterForm(
-        initial={"name": character.name, "kind": character.kind, "notes": character.notes},
+        initial={
+            "name": character.name,
+            "kind": character.kind,
+            "notes": character.notes,
+            "reminder": character.reminder,
+        },
         prefix=f"character{character.pk}",
     )
 
@@ -64,7 +69,13 @@ def character_add(request, pk):
         return _render(request, kingdom, add_form=form, status=400)
     data = form.cleaned_data
     services.add_character(
-        kingdom, writer, data["name"], data["kind"], data["picture"], data["notes"]
+        kingdom,
+        writer,
+        data["name"],
+        data["kind"],
+        data["picture"],
+        data["notes"],
+        data["reminder"],
     )
     return redirect(_characters_url(pk))
 
@@ -81,7 +92,13 @@ def character_edit(request, pk, character_pk):
         return _render(request, kingdom, edit_forms={character.pk: form}, status=400)
     data = form.cleaned_data
     services.update_character(
-        character, writer, data["name"], data["kind"], data["picture"], data["notes"]
+        character,
+        writer,
+        data["name"],
+        data["kind"],
+        data["picture"],
+        data["notes"],
+        data["reminder"],
     )
     return redirect(_characters_url(pk))
 

@@ -136,7 +136,8 @@ def build_sheet(kingdom, form):
         "kingdom_dc": rules.kingdom_dc(kingdom.level),
         "proficiency": rules.proficiency_bonus(kingdom.level),
         "ruler_vacant": "ruler" in vacant,
-        "warnings": _vacancy_reminders(vacant) + _investiture_warnings(form),
+        "warnings": _investiture_warnings(form),
+        "vacancy_reminders": _vacancy_reminders(vacant),
         "ruins": [
             {
                 "label": label,

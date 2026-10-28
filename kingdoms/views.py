@@ -34,7 +34,7 @@ from .forms import (
     SheetForm,
     StatisticForm,
 )
-from .models import Army, HistoryEntry, Settlement, Statistic
+from .models import Army, Character, HistoryEntry, Settlement, Statistic
 from .names import (
     NameSelectionError,
     current_editor,
@@ -79,6 +79,11 @@ def _sheet_context(request, kingdom, sheet_form):
         "form": sheet_form,
         "sheet": sheet,
         "warnings": sheet["warnings"] + _role_warnings(kingdom),
+        "consequences": sheet["vacancy_reminders"],
+        "reminders": [
+            f"{character.name}: {character.notes}" if character.notes else character.name
+            for character in Character.objects.filter(kingdom=kingdom, reminder=True)
+        ],
         "settlements": [
             {
                 "settlement": settlement,

@@ -220,6 +220,7 @@ class CharacterForm(forms.Form):
         max_length=2000,
         widget=forms.Textarea(attrs={"rows": 3}),
     )
+    reminder = forms.BooleanField(required=False, label="Add this as a kingdom reminder")
 
     def clean_picture(self):
         upload = self.cleaned_data["picture"]

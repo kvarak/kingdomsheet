@@ -131,6 +131,7 @@ class KingdomSheetTests(TestCase):
         self.assertEqual(trade["roll"], "")
         self.assertEqual(page.context["sheet"]["control_dc"], 12 + 2 + 0)
         self.assertContains(page, "Warden vacant: disadvantage on Region activities")
+        self.assertContains(page, 'class="notes-consequences"')
         self.assertNotContains(page, "Ruler vacant")
 
         leader = self.kingdom.leaders.get(role="ruler")
@@ -217,6 +218,13 @@ class KingdomSheetTests(TestCase):
         trade = self.skill_row(self.client.get(self.url), "Trade")
         self.assertEqual(trade["proficiency"], 3)
         self.assertEqual(trade["roll"], "advantage")
+
+    def test_read_only_sheet_explains_each_role(self):
+        page = self.client.get(self.url)
+        self.assertContains(page, "Key ability: Loyalty. Vacancy penalty: -1 to all checks")
+        self.assertContains(
+            page, "Key ability: Stability. Vacancy penalty: disadvantage on Region activities"
+        )
 
     def test_edit_mode_explains_each_role(self):
         page = self.client.get(reverse("kingdoms:edit", args=[self.kingdom.pk]))

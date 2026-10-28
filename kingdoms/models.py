@@ -149,10 +149,9 @@ class Character(SoftDelete):
     picture = models.FileField(upload_to="characters/", blank=True)
     # Free text for players, such as background or personal info.
     notes = models.TextField(blank=True)
+    # Shows the notes on the kingdom sheet as a reminder.
+    reminder = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["kind", "name", "id"]
 
     def __str__(self):
         return self.name

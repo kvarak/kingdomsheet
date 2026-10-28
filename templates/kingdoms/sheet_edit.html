@@ -44,6 +44,8 @@
       <label for="{{ form.notes.id_for_label }}">Notes</label>
       {{ form.notes }}
       <div class="notes-warnings">{% for warning in warnings %}{{ warning }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+      <div class="notes-consequences">{% for consequence in consequences %}{{ consequence }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+      <div class="notes-reminders">{% for reminder in reminders %}{{ reminder }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
     </div>
   </div>
 </fieldset>

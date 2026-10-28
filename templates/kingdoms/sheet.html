@@ -36,6 +36,8 @@
       <p>{{ kingdom.description|default:"No description."|linebreaksbr }}</p>
       {% if kingdom.notes %}<p class="hint">Notes</p><p>{{ kingdom.notes|linebreaksbr }}</p>{% endif %}
       <div class="notes-warnings">{% for warning in warnings %}{{ warning }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+      <div class="notes-consequences">{% for consequence in consequences %}{{ consequence }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
+      <div class="notes-reminders">{% for reminder in reminders %}{{ reminder }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
     </div>
   </div>
 </fieldset>
@@ -75,7 +77,7 @@
         <thead><tr><th title="Invested">Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
           {% for leader in sheet.leaders %}
-          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }}</td><td>{% if leader.saved_character %}{% include "kingdoms/includes/character_avatar.html" with character=leader.saved_character %} {{ leader.saved_character.name }}{% else %}Vacant{% endif %}</td></tr>
+          <tr><td>{% if leader.invested.value %}&#10003;{% endif %}</td><td>{{ leader.label }} <span class="info" tabindex="0" title="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}." aria-label="Key ability: {{ leader.key_ability }}. Vacancy penalty: {{ leader.vacancy_penalty }}.">&#9432;</span></td><td>{% if leader.saved_character %}{% include "kingdoms/includes/character_avatar.html" with character=leader.saved_character %} {{ leader.saved_character.name }}{% else %}Vacant{% endif %}</td></tr>
           {% endfor %}
         </tbody>
       </table>

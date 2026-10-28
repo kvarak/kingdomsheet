@@ -210,9 +210,9 @@ def delete_battle(battle, writer):
         battle.delete()
 
 
-def add_character(kingdom, writer, name, kind, picture, notes=""):
+def add_character(kingdom, writer, name, kind, picture, notes="", reminder=False):
     with transaction.atomic():
-        character = Character(kingdom=kingdom, name=name, kind=kind, notes=notes)
+        character = Character(kingdom=kingdom, name=name, kind=kind, notes=notes, reminder=reminder)
         if picture:
             character.picture.save(picture.name, picture, save=False)
         character.save()
@@ -221,13 +221,15 @@ def add_character(kingdom, writer, name, kind, picture, notes=""):
         )
         if notes:
             changes["notes"] = {"old": None, "new": notes}
+        if reminder:
+            changes["reminder"] = {"old": False, "new": True}
         _record_and_touch(kingdom, writer, HistoryEntry.Action.CHARACTER_ADDED, changes, character)
     return character
 
 
-def update_character(character, writer, name, kind, picture, notes=""):
-    """Rename the character, change PC or NPC, replace its picture if `picture` is given and
-    change its notes."""
+def update_character(character, writer, name, kind, picture, notes="", reminder=False):
+    """Rename the character, change PC or NPC, replace its picture if `picture` is given, change
+    its notes and set whether the notes show as a kingdom reminder."""
     with transaction.atomic():
         changes = {}
         if name != character.name:
@@ -244,6 +246,9 @@ def update_character(character, writer, name, kind, picture, notes=""):
         if notes != character.notes:
             changes["notes"] = {"old": character.notes or None, "new": notes or None}
             character.notes = notes
+        if reminder != character.reminder:
+            changes["reminder"] = {"old": character.reminder, "new": reminder}
+            character.reminder = reminder
         if changes:
             character.save()
             _record_and_touch(
