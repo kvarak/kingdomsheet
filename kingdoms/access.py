@@ -4,7 +4,7 @@ import secrets
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from .models import Kingdom
+from .models import Kingdom, KingdomMember
 from .names import current_writer, is_admin_writer
 
 REMEMBERED_KEY = "kingdom_ids"
@@ -32,10 +32,12 @@ def find_kingdom_by_code(raw):
     return Kingdom.objects.filter(access_code=code).first()
 
 
-def remember_kingdom(request, kingdom):
+def remember_kingdom(request, kingdom, writer=None):
     remembered = request.session.get(REMEMBERED_KEY, [])
     if kingdom.pk not in remembered:
         request.session[REMEMBERED_KEY] = [*remembered, kingdom.pk]
+    if writer is not None:
+        KingdomMember.objects.get_or_create(kingdom=kingdom, player_id=writer.player_id)
 
 
 def remembered_kingdoms(request):

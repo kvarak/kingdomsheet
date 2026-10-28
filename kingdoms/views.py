@@ -141,7 +141,7 @@ def create_kingdom(request):
     if not form.is_valid():
         return _render_home(request, create_form=form, join_form=JoinForm(), status=400)
     kingdom = services.create_kingdom(writer, **form.cleaned_data)
-    remember_kingdom(request, kingdom)
+    remember_kingdom(request, kingdom, writer)
     locks.acquire(kingdom, writer.player_id)
     return redirect(kingdom_edit_url(kingdom.pk))
 
@@ -152,7 +152,7 @@ def join(request):
     if request.method == "POST" and form.is_valid():
         kingdom = find_kingdom_by_code(form.cleaned_data["code"])
         if kingdom is not None:
-            remember_kingdom(request, kingdom)
+            remember_kingdom(request, kingdom, current_writer(request))
             return redirect(kingdom_url(kingdom.pk))
         form.add_error("code", "No kingdom has that sharing ID. Check it and try again.")
     status = 400 if form.errors else 200
@@ -165,7 +165,7 @@ def join_by_link(request, code):
     if kingdom is None:
         return render(request, "kingdoms/join_missing.html", status=404)
     if request.method == "POST":
-        remember_kingdom(request, kingdom)
+        remember_kingdom(request, kingdom, current_writer(request))
         return redirect(kingdom_url(kingdom.pk))
     return render(request, "kingdoms/join_confirm.html", {"kingdom": kingdom})
 

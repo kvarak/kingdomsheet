@@ -418,6 +418,24 @@ class PlayerName(models.Model):
         return bool(self.password_hash)
 
 
+class KingdomMember(models.Model):
+    """A name that created or joined a kingdom. Used by the admin page to list access."""
+
+    kingdom = models.ForeignKey(Kingdom, on_delete=models.CASCADE, related_name="members")
+    player = models.ForeignKey(
+        PlayerName, on_delete=models.CASCADE, related_name="kingdom_memberships"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["kingdom", "player"], name="unique_kingdom_member")
+        ]
+
+    def __str__(self):
+        return f"{self.player} in {self.kingdom}"
+
+
 class HistoryEntry(models.Model):
     """A read-only record of one change. The application never edits or deletes these rows."""
 

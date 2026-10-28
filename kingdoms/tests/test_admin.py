@@ -1,7 +1,7 @@
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Kingdom
+from ..models import Kingdom, KingdomMember
 from .helpers import PASSWORD, PLAYER_NAME
 
 ADMIN_NAME = "Varlyn Admin"
@@ -58,6 +58,43 @@ class AdminTests(TestCase):
         self.sign_in(self.client, PLAYER_NAME, PASSWORD)
         url = reverse("kingdoms:sheet", args=[self.kingdom.pk])
         self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_admin_page_lists_users_with_their_kingdoms(self):
+        client = self.client_class()
+        self.sign_in(client, ADMIN_NAME, ADMIN_PASSWORD)
+        response = client.get(reverse("kingdoms:admin_kingdoms"))
+        self.assertContains(response, "Users and their kingdoms")
+        self.assertContains(response, PLAYER_NAME)
+        self.assertContains(response, reverse("kingdoms:sheet", args=[self.kingdom.pk]))
+
+    def test_admin_page_shows_last_edit_per_user(self):
+        bob = self.client_class()
+        self.sign_in(bob, "Bob", PASSWORD)
+        bob.post(reverse("kingdoms:join_link", args=[self.kingdom.access_code]))
+        client = self.client_class()
+        self.sign_in(client, ADMIN_NAME, ADMIN_PASSWORD)
+        response = client.get(reverse("kingdoms:admin_kingdoms"))
+        self.assertContains(response, "<th>Latest update</th>")
+        self.assertContains(response, reverse("kingdoms:history", args=[self.kingdom.pk]))
+        self.assertContains(response, "Kingdom created")
+        self.assertContains(response, "Never")
+        self.assertNotContains(response, "No users yet.")
+
+    def test_joining_by_link_records_membership_once(self):
+        bob = self.client_class()
+        self.sign_in(bob, "Bob", PASSWORD)
+        url = reverse("kingdoms:join_link", args=[self.kingdom.access_code])
+        bob.post(url)
+        bob.post(url)
+        self.assertEqual(
+            KingdomMember.objects.filter(kingdom=self.kingdom, player__display_name="Bob").count(),
+            1,
+        )
+
+    def test_anonymous_join_records_no_new_membership(self):
+        before = KingdomMember.objects.filter(kingdom=self.kingdom).count()
+        self.client.post(reverse("kingdoms:join_link", args=[self.kingdom.access_code]))
+        self.assertEqual(KingdomMember.objects.filter(kingdom=self.kingdom).count(), before)
 
     def test_admin_name_is_reserved_for_the_admin_password(self):
         response = self.sign_in(self.client, ADMIN_NAME, "wrong-password")

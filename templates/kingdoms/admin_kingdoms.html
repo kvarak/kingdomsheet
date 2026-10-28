@@ -23,4 +23,32 @@
     </tbody>
   </table>
 </fieldset>
+
+<fieldset>
+  <legend>Users and their kingdoms</legend>
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Protected</th><th>Latest update</th><th>Kingdoms</th></tr>
+    </thead>
+    <tbody>
+      {% for player in players %}
+      <tr>
+        <td>{{ player.display_name }}</td>
+        <td>{% if player.is_protected %}Yes{% else %}No{% endif %}</td>
+        <td>{% if player.last_edit %}{{ player.last_edit.created_at|date:"Y-m-d H:i" }}
+          <a href="{% url 'kingdoms:history' player.last_edit.kingdom.pk %}">{{ player.last_edit.get_action_display }}</a>{% else %}Never{% endif %}</td>
+        <td>
+          {% for membership in player.memberships %}
+            <a href="{% url 'kingdoms:sheet' membership.kingdom.pk %}">{{ membership.kingdom.name }}</a>{% if not forloop.last %}, {% endif %}
+          {% empty %}
+            None
+          {% endfor %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">No users yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</fieldset>
 {% endblock %}
