@@ -23,6 +23,9 @@ services:
     env_file: .env
     environment:
       POSTGRES_HOST: db
+      # Values come from .env so the password is never committed. Leave empty to disable admin.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - media-data:/data/media
     ports:

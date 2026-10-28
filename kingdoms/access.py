@@ -5,6 +5,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 from .models import Kingdom
+from .names import current_writer, is_admin_writer
 
 REMEMBERED_KEY = "kingdom_ids"
 ACCESS_CODE_BYTES = 32
@@ -42,7 +43,9 @@ def remembered_kingdoms(request):
 
 
 def get_remembered_kingdom_or_404(request, pk):
-    """Return the kingdom only if this session has access. Other requests get a 404."""
-    if pk not in request.session.get(REMEMBERED_KEY, []):
+    """Return the kingdom only if this session has access or it is an admin session."""
+    if not is_admin_writer(current_writer(request)) and pk not in request.session.get(
+        REMEMBERED_KEY, []
+    ):
         raise Http404("No such kingdom.")
     return get_object_or_404(Kingdom, pk=pk)

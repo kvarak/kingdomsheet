@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
 </head>
 <body>
-  <nav class="top-bar"><div class="top-bar-inner"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a></div></nav>
+  <nav class="top-bar"><div class="top-bar-inner"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a>{% if is_admin %} &middot; <a href="{% url 'kingdoms:admin_kingdoms' %}">Admin</a>{% endif %}</div></nav>
   <div class="page">
   <div class="title-bar">
     <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>

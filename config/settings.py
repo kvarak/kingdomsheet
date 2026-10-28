@@ -23,6 +23,10 @@ DEBUG = env_bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+# Admin sign-in is a protected name with this username. It is disabled when either value is empty.
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "").strip()
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
 # Set DJANGO_HTTPS=1 in production, where an HTTPS reverse proxy sits in front of the app.
 HTTPS = env_bool("DJANGO_HTTPS", default=False)
 if HTTPS:

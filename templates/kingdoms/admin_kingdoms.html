@@ -1,0 +1,26 @@
+{% extends "kingdoms/base.html" %}
+{% block title %}Admin · Kingdom Sheet{% endblock %}
+{% block heading %}All kingdoms{% endblock %}
+{% block content %}
+<p>Every kingdom on this site. Admin can open and edit any of them.</p>
+
+<fieldset>
+  <legend>Kingdoms</legend>
+  <table>
+    <thead>
+      <tr><th>Kingdom</th><th>ID</th><th>Last updated</th></tr>
+    </thead>
+    <tbody>
+      {% for kingdom in kingdoms %}
+      <tr>
+        <td><a href="{% url 'kingdoms:sheet' kingdom.pk %}">{{ kingdom.name }}</a></td>
+        <td>{{ kingdom.pk }}</td>
+        <td>{{ kingdom.updated_at|date:"Y-m-d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">No kingdoms yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</fieldset>
+{% endblock %}

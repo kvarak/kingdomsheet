@@ -157,6 +157,14 @@ A kingdom opens read-only. The cogwheel in the top right starts editing, which l
 - If the timer runs out and nobody else has started editing, the editor can still save.
 - Creating a kingdom opens it in edit mode.
 
+### Admin
+
+An admin name can be set in `.env` with `ADMIN_USERNAME` and `ADMIN_PASSWORD`. Docker Compose passes both values to the web container. Leave them empty to turn admin off.
+
+- The admin name is reserved. Anyone who selects it must give the admin password, even if they chose the name first.
+- Signing in as admin shows an **Admin** link in the top bar. It opens `/admin/kingdoms/`, which lists every kingdom. Admin can open and edit any kingdom without being a member.
+- If `ADMIN_PASSWORD` changes in `.env`, the next admin sign-in updates the stored password.
+
 ## Lost passwords
 
 Passwords cannot be recovered, only replaced by the host. Set a new one, then give it to the player:

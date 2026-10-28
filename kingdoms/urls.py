@@ -1,11 +1,12 @@
 from django.urls import path
 
-from . import army_views, battle_views, character_views, settlement_views, views
+from . import admin_views, army_views, battle_views, character_views, settlement_views, views
 
 app_name = "kingdoms"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("admin/kingdoms/", admin_views.kingdom_list, name="admin_kingdoms"),
     path("kingdoms/new/", views.create_kingdom, name="create"),
     path("kingdoms/join/", views.join, name="join"),
     path("join/<str:code>/", views.join_by_link, name="join_link"),

@@ -1,5 +1,7 @@
+import secrets
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.db import IntegrityError, transaction
 
@@ -28,9 +30,24 @@ def normalize_name(raw):
     return clean_display_name(raw).casefold()
 
 
+def admin_key():
+    """The normalized admin username, or an empty string when admin is disabled."""
+    return normalize_name(settings.ADMIN_USERNAME) if settings.ADMIN_USERNAME else ""
+
+
+def is_admin_writer(writer):
+    """True for a verified writer who signed in with the admin name and password."""
+    key = admin_key()
+    return bool(writer and writer.verified and key and normalize_name(writer.display_name) == key)
+
+
 def select_name(request, raw_name, password):
     display = clean_display_name(raw_name)
     key = normalize_name(display)
+    if key and key == admin_key():
+        _select_admin_name(request, display, key, password)
+        return
+
     with transaction.atomic():
         player = PlayerName.objects.select_for_update().filter(normalized_name=key).first()
         if player is None:
@@ -48,6 +65,23 @@ def select_name(request, raw_name, password):
             verified = False
 
     _remember(request, player, verified)
+
+
+def _select_admin_name(request, display, key, password):
+    # The admin name is reserved, so only the admin password can use it.
+    if not settings.ADMIN_PASSWORD or not password:
+        raise NameSelectionError("That name is reserved.")
+    if not secrets.compare_digest(password, settings.ADMIN_PASSWORD):
+        raise NameSelectionError("That name is reserved. Enter the admin password.")
+    with transaction.atomic():
+        player = PlayerName.objects.select_for_update().filter(normalized_name=key).first()
+        if player is None:
+            player = _create_name(display, key, password)
+        elif not check_password(password, player.password_hash):
+            # The password in .env changed, so keep the stored hash in step with it.
+            player.password_hash = make_password(password)
+            player.save(update_fields=["password_hash"])
+    _remember(request, player, verified=True)
 
 
 def protect_current_name(request, password):
