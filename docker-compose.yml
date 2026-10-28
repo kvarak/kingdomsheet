@@ -26,6 +26,8 @@ services:
       # Values come from .env so the password is never committed. Leave empty to disable admin.
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Analytics is off unless set. Example: https://stats.example.com/count
+      GOATCOUNTER_URL: ${GOATCOUNTER_URL:-}
     volumes:
       - media-data:/data/media
     ports:

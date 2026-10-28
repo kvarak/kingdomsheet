@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -26,6 +27,16 @@ CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 # Admin sign-in is a protected name with this username. It is disabled when either value is empty.
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "").strip()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+# Optional self-hosted GoatCounter endpoint, e.g. https://stats.example.com/count.
+# Empty disables it. Tracking is always off when DEBUG is on, so development is never counted.
+GOATCOUNTER_URL = os.environ.get("GOATCOUNTER_URL", "").strip()
+if GOATCOUNTER_URL and not re.fullmatch(r"https://[^/?#\s]+/count", GOATCOUNTER_URL):
+    raise ImproperlyConfigured(
+        "GOATCOUNTER_URL must look like https://host/count. See .env.example."
+    )
+if DEBUG:
+    GOATCOUNTER_URL = ""
 
 # Set DJANGO_HTTPS=1 in production, where an HTTPS reverse proxy sits in front of the app.
 HTTPS = env_bool("DJANGO_HTTPS", default=False)
@@ -61,6 +72,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.messages.context_processors.messages",
                 "kingdoms.context_processors.current_name",
+                "kingdoms.context_processors.analytics",
             ],
         },
     },

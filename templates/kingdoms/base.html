@@ -6,6 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Kingdom Sheet{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
+  {% if goatcounter_url %}
+  <script>
+    window.goatcounter = {
+      // Hostname prefix keeps apps apart on the shared dashboard. Access codes in paths are redacted.
+      path: function () {
+        return location.hostname + location.pathname.replace(/[0-9a-fA-F]{64}/g, "[redacted]");
+      }
+    };
+  </script>
+  <script data-goatcounter="{{ goatcounter_url }}" async src="{{ goatcounter_script }}"></script>
+  {% endif %}
 </head>
 <body>
   <nav class="top-bar"><div class="top-bar-inner"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a>{% if is_admin %} &middot; <a href="{% url 'kingdoms:admin_kingdoms' %}">Admin</a>{% endif %}</div></nav>
@@ -22,7 +33,7 @@
   {% block content %}{% endblock %}
 
   {% block footer %}{% endblock %}
-  <p class="hint">Your name and kingdom list are remembered with a session cookie in this browser.</p>
+  <p class="hint">Your name and kingdom list are remembered with a session cookie in this browser.{% if goatcounter_url %} Anonymous page views are counted with a self-hosted GoatCounter, which uses no cookies.{% endif %}</p>
   </div>
 </body>
 </html>

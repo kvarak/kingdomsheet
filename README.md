@@ -177,6 +177,20 @@ docker compose exec web python manage.py reset_name_password "Alice"
 
 The command prompts for the password twice without echoing it.
 
+## Analytics
+
+Optional pageview tracking with a self-hosted [GoatCounter](https://www.goatcounter.com/). It is off unless `GOATCOUNTER_URL` is set in `.env`:
+
+```sh
+GOATCOUNTER_URL=https://stats.example.com/count
+```
+
+- The value must be `https://<host>/count`. The script is loaded from `count.js` on the same host.
+- Paths are recorded with the hostname in front, for example `kingdoms.example.com/kingdoms/3/`. Several apps can share one dashboard this way.
+- Access codes in paths are replaced with `[redacted]` before they are sent. Query strings and fragments are not sent.
+- Tracking is always off when `DJANGO_DEBUG=1`, so development is never counted.
+- The script loads with `async`, so a slow or unreachable GoatCounter does not block pages.
+
 ## Layout
 
 - `config/`: Django settings and URLs.
