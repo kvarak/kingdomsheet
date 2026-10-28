@@ -43,7 +43,7 @@
       {{ form.description }}
       <label for="{{ form.notes.id_for_label }}">Notes</label>
       {{ form.notes }}
-      {% for character, roles in multiple_roles %}<p class="penalty">{{ character.name }} has several roles: {{ roles|join:", " }}.</p>{% endfor %}
+      <div class="notes-warnings">{% for warning in warnings %}{{ warning }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
     </div>
   </div>
 </fieldset>
@@ -82,7 +82,7 @@
     <fieldset>
       <legend>Leaders</legend>
       <p class="hint">Pick a PC or NPC from the kingdom's characters. <a href="{% url 'kingdoms:characters' kingdom.pk %}">Manage characters</a></p>
-      <p class="hint">Inv: up to {{ sheet.max_invested }} filled roles can be invested. Saving clears it on vacant roles.</p>
+      <p class="hint">Inv: {{ sheet.max_invested }} is the usual limit. Going over still saves, with a warning. Saving clears it on vacant roles.</p>
       <table>
         <thead><tr><th title="Invested">Inv</th><th>Role</th><th>Character name</th></tr></thead>
         <tbody>
@@ -91,7 +91,6 @@
           {% endfor %}
         </tbody>
       </table>
-      {% for reminder in sheet.vacancy_reminders %}<p class="hint penalty">{{ reminder }}</p>{% endfor %}
     </fieldset>
 
     <fieldset>

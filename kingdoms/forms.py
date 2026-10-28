@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.models import fields_for_model
 
-from . import growth, pictures, rules
+from . import growth, pictures
 from . import settlements as grid
 from .access import ACCESS_CODE_LENGTH, is_valid_access_code, normalize_access_code
 from .models import Army, Battle, Character, Kingdom, Placement, Settlement, Unit
@@ -45,19 +45,10 @@ class SheetForm(forms.Form):
 
     def clean(self):
         data = super().clean()
-        invested = []
         for key in LEADER_ROWS.keys:
-            invested_name = LEADER_ROWS.field_name(key, "invested")
             if data.get(LEADER_ROWS.field_name(key, "character")) is None:
                 # A vacant role cannot be invested.
-                data[invested_name] = False
-            elif data.get(invested_name):
-                invested.append(rules.ROLE_LABELS[key])
-        if len(invested) > rules.MAX_INVESTED_LEADERS:
-            raise forms.ValidationError(
-                f"At most {rules.MAX_INVESTED_LEADERS} leaders can be invested, "
-                f"not {len(invested)} ({', '.join(invested)})."
-            )
+                data[LEADER_ROWS.field_name(key, "invested")] = False
         return data
 
 
@@ -223,6 +214,11 @@ class CharacterForm(forms.Form):
         ),
         help_text="JPEG, PNG, GIF or WebP. It is shrunk to at most "
         f"{pictures.MAX_SIDE} pixels on its longest side.",
+    )
+    notes = forms.CharField(
+        required=False,
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 3}),
     )
 
     def clean_picture(self):

@@ -69,6 +69,7 @@ def _render_home(request, create_form, join_form, status=200):
 
 def _sheet_context(request, kingdom, sheet_form):
     writer = current_writer(request)
+    sheet = build_sheet(kingdom, sheet_form)
     return {
         "kingdom": kingdom,
         "share_url": request.build_absolute_uri(
@@ -76,8 +77,8 @@ def _sheet_context(request, kingdom, sheet_form):
         ),
         "writer": writer,
         "form": sheet_form,
-        "sheet": build_sheet(kingdom, sheet_form),
-        "multiple_roles": multiple_roles(kingdom),
+        "sheet": sheet,
+        "warnings": sheet["warnings"] + _role_warnings(kingdom),
         "settlements": [
             {
                 "settlement": settlement,
@@ -92,6 +93,13 @@ def _sheet_context(request, kingdom, sheet_form):
         .annotate(unit_count=Count("units", filter=Q(units__deleted_at__isnull=True))),
         **lock_context(kingdom, writer),
     }
+
+
+def _role_warnings(kingdom):
+    return [
+        f"{character.name} has several roles: {', '.join(roles)}."
+        for character, roles in multiple_roles(kingdom)
+    ]
 
 
 def _take_kingdom_lock(request, kingdom):

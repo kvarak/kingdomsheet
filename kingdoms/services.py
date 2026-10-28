@@ -1,7 +1,7 @@
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from . import growth, rules
+from . import growth
 from .access import new_access_code
 from .models import (
     Army,
@@ -210,21 +210,24 @@ def delete_battle(battle, writer):
         battle.delete()
 
 
-def add_character(kingdom, writer, name, kind, picture):
+def add_character(kingdom, writer, name, kind, picture, notes=""):
     with transaction.atomic():
-        character = Character(kingdom=kingdom, name=name, kind=kind)
+        character = Character(kingdom=kingdom, name=name, kind=kind, notes=notes)
         if picture:
             character.picture.save(picture.name, picture, save=False)
         character.save()
         changes = _created(
             {"name": name, "kind": character.get_kind_display(), "picture": bool(picture)}
         )
+        if notes:
+            changes["notes"] = {"old": None, "new": notes}
         _record_and_touch(kingdom, writer, HistoryEntry.Action.CHARACTER_ADDED, changes, character)
     return character
 
 
-def update_character(character, writer, name, kind, picture):
-    """Rename the character, change PC or NPC and, if `picture` is given, replace its picture."""
+def update_character(character, writer, name, kind, picture, notes=""):
+    """Rename the character, change PC or NPC, replace its picture if `picture` is given and
+    change its notes."""
     with transaction.atomic():
         changes = {}
         if name != character.name:
@@ -238,6 +241,9 @@ def update_character(character, writer, name, kind, picture):
             _delete_file_after_commit(character.picture)
             character.picture.save(picture.name, picture, save=False)
             changes["picture"] = {"old": "previous picture", "new": "new picture"}
+        if notes != character.notes:
+            changes["notes"] = {"old": character.notes or None, "new": notes or None}
+            character.notes = notes
         if changes:
             character.save()
             _record_and_touch(
@@ -383,15 +389,13 @@ def _relink(model, pks, field, subject):
 
 def _relink_leaders(character, saved):
     leaders = KingdomLeader.objects.filter(kingdom=character.kingdom)
-    invested = leaders.filter(invested=True).count()
     roles = []
     for role, was_invested in saved:
         leader = leaders.filter(role=role, character__isnull=True).first()
         if leader is None:
             continue
         leader.character = character
-        leader.invested = was_invested and invested < rules.MAX_INVESTED_LEADERS
-        invested += leader.invested
+        leader.invested = was_invested
         leader.save(update_fields=["character", "invested"])
         roles.append(str(leader))
     return {"leader roles": {"old": None, "new": roles}} if roles else {}

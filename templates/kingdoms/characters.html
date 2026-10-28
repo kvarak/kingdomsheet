@@ -23,33 +23,7 @@
       <legend>Characters</legend>
       <div class="character-cards">
         {% for character, roles, form in characters %}
-        <div class="character-card">
-          {% if character.picture %}
-          <img class="character-picture" src="{% url 'kingdoms:character_picture' kingdom.pk character.pk %}" alt="{{ character.name }}" loading="lazy">
-          {% else %}
-          <div class="character-picture character-no-picture">No picture</div>
-          {% endif %}
-          <strong>{{ character.name }}</strong> <span class="hint">{{ character.get_kind_display }}</span>
-          <p class="character-roles">{% for label, url in roles %}<a href="{{ url }}">{{ label }}</a>{% if not forloop.last %}<br>{% endif %}{% empty %}<span class="hint">No roles</span>{% endfor %}</p>
-          {% if writer.verified %}
-          <div class="character-edit">
-          <form id="character-{{ character.pk }}" class="character-form" method="post" action="{% url 'kingdoms:character_edit' kingdom.pk character.pk %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.non_field_errors }}
-            <label>Name {{ form.name }}</label>{{ form.name.errors }}
-            <div class="kind-choices">{{ form.kind }}</div>
-            <label>New picture <input type="file" name="{{ form.picture.html_name }}" accept="image/jpeg,image/png,image/gif,image/webp"></label>{{ form.picture.errors }}
-          </form>
-          <div class="card-actions">
-            <button type="submit" form="character-{{ character.pk }}">Save</button>
-            <form method="post" action="{% url 'kingdoms:character_delete' kingdom.pk character.pk %}" class="inline-form">
-              {% csrf_token %}
-              <button type="submit" title="Delete {{ character.name }}. Their leader roles become vacant and their armies and units lose them as commander or hero.">Delete</button>
-            </form>
-          </div>
-          </div>
-          {% endif %}
-        </div>
+        {% include "kingdoms/includes/character_card.html" %}
         {% empty %}
         <p>No characters yet.</p>
         {% endfor %}

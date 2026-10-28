@@ -147,6 +147,8 @@ class Character(SoftDelete):
     kind = models.CharField(max_length=3, choices=Kind.choices, default=Kind.NPC)
     # Always a downscaled WebP made by kingdoms.pictures, stored under a random name.
     picture = models.FileField(upload_to="characters/", blank=True)
+    # Free text for players, such as background or personal info.
+    notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

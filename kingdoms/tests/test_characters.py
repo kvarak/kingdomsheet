@@ -203,3 +203,50 @@ class CharacterTests(TestCase):
         self.assertIn(">Kesten Garess</option>", page)
         self.assertIn(">Vacant</option>", page)
         self.assertNotIn('<input type="text" name="ruler_character"', page)
+
+    def test_notes_are_saved_shown_and_logged_on_change(self):
+        self.client.post(
+            reverse("kingdoms:character_add", args=[self.kingdom.pk]),
+            {"name": "Amiri", "kind": "pc", "notes": "Keeps a ledger of every harvest"},
+        )
+        character = Character.objects.get()
+        self.assertEqual(character.notes, "Keeps a ledger of every harvest")
+        page = self.client.get(self.characters_url)
+        self.assertContains(
+            page, '<p class="character-notes-view">Keeps a ledger of every harvest</p>'
+        )
+        added = self.kingdom.history.get(action=HistoryEntry.Action.CHARACTER_ADDED)
+        self.assertEqual(
+            added.changes["notes"], {"old": None, "new": "Keeps a ledger of every harvest"}
+        )
+
+        self.client.post(
+            reverse("kingdoms:character_edit", args=[self.kingdom.pk, character.pk]),
+            {
+                f"character{character.pk}-name": "Amiri",
+                f"character{character.pk}-kind": "pc",
+                f"character{character.pk}-notes": "Now also a scout",
+            },
+        )
+        character.refresh_from_db()
+        self.assertEqual(character.notes, "Now also a scout")
+        edited = self.kingdom.history.get(
+            action=HistoryEntry.Action.CHARACTER_EDITED, changes__has_key="notes"
+        )
+        self.assertEqual(
+            edited.changes["notes"],
+            {"old": "Keeps a ledger of every harvest", "new": "Now also a scout"},
+        )
+
+    def test_character_cards_have_picture_details_notes_columns(self):
+        self.add_character(picture=False)
+        page = self.client.get(self.characters_url).content.decode()
+        self.assertIn('<div class="character-card">', page)
+        self.assertIn('<div class="character-details">', page)
+        self.assertIn('<div class="character-notes-panel">', page)
+        self.assertIn('<details class="character-editor"', page)
+        self.assertIn('<summary class="cog"', page)
+        self.assertLess(page.index(">No picture</div>"), page.index('class="character-details"'))
+        self.assertLess(
+            page.index('class="character-details"'), page.index('class="character-notes-panel"')
+        )

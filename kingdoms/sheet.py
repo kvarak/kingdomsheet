@@ -136,7 +136,7 @@ def build_sheet(kingdom, form):
         "kingdom_dc": rules.kingdom_dc(kingdom.level),
         "proficiency": rules.proficiency_bonus(kingdom.level),
         "ruler_vacant": "ruler" in vacant,
-        "vacancy_reminders": _vacancy_reminders(vacant),
+        "warnings": _vacancy_reminders(vacant) + _investiture_warnings(form),
         "ruins": [
             {
                 "label": label,
@@ -170,6 +170,22 @@ def build_sheet(kingdom, form):
         ],
         "work_sites": [form[key] for key, _ in rules.WORK_SITES],
     }
+
+
+def _investiture_warnings(form):
+    """Going over the usual limit is only a warning, since some characters add extra investiture."""
+    invested = [
+        rules.ROLE_LABELS[key]
+        for key in LEADER_ROWS.keys
+        if form[LEADER_ROWS.field_name(key, "character")].value()
+        and form[LEADER_ROWS.field_name(key, "invested")].value()
+    ]
+    if len(invested) <= rules.MAX_INVESTED_LEADERS:
+        return []
+    return [
+        f"{len(invested)} leaders are invested, more than the usual "
+        f"{rules.MAX_INVESTED_LEADERS} ({', '.join(invested)})."
+    ]
 
 
 def _vacancy_reminders(vacant):

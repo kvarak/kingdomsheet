@@ -35,7 +35,7 @@
       <p class="hint">Description</p>
       <p>{{ kingdom.description|default:"No description."|linebreaksbr }}</p>
       {% if kingdom.notes %}<p class="hint">Notes</p><p>{{ kingdom.notes|linebreaksbr }}</p>{% endif %}
-      {% for character, roles in multiple_roles %}<p class="penalty">{{ character.name }} has several roles: {{ roles|join:", " }}.</p>{% endfor %}
+      <div class="notes-warnings">{% for warning in warnings %}{{ warning }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</div>
     </div>
   </div>
 </fieldset>
@@ -79,7 +79,6 @@
           {% endfor %}
         </tbody>
       </table>
-      {% for reminder in sheet.vacancy_reminders %}<p class="hint penalty">{{ reminder }}</p>{% endfor %}
     </fieldset>
 
     <fieldset>

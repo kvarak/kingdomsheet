@@ -158,7 +158,7 @@ class KingdomSheetTests(TestCase):
         self.client.post(self.edit_url, sheet_post_data(self.kingdom, ruler_invested=True))
         self.assertFalse(self.kingdom.leaders.get(role="ruler").invested)
 
-    def test_at_most_four_leaders_are_invested(self):
+    def test_more_than_four_invested_leaders_saves_with_a_warning(self):
         roles = ["ruler", "counselor", "general", "emissary", "magister"]
         values = {}
         for role in roles:
@@ -166,19 +166,17 @@ class KingdomSheetTests(TestCase):
                 kingdom=self.kingdom, name=role.title(), kind="npc"
             )
             values[f"{role}_invested"] = True
-        response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, **values))
+        response = self.client.post(
+            self.edit_url, sheet_post_data(self.kingdom, **values), follow=True
+        )
         self.assertContains(
             response,
-            "At most 4 leaders can be invested, not 5 (Ruler, Counselor, General, Emissary, "
+            "5 leaders are invested, more than the usual 4 (Ruler, Counselor, General, Emissary, "
             "Magister).",
-            status_code=400,
         )
-        self.assertFalse(self.kingdom.leaders.filter(invested=True).exists())
-
-        values["magister_invested"] = False
-        response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, **values))
-        self.assertRedirects(response, self.edit_url)
-        self.assertEqual(self.kingdom.leaders.filter(invested=True).count(), 4)
+        self.assertEqual(self.kingdom.leaders.filter(invested=True).count(), 5)
+        self.assertContains(self.client.get(self.url), "5 leaders are invested")
+        self.assertContains(self.client.get(self.url), 'class="notes-warnings"')
 
     def test_deleting_a_character_uninvests_their_roles(self):
         kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="pc")
@@ -188,14 +186,14 @@ class KingdomSheetTests(TestCase):
         self.assertEqual((leader.character, leader.invested), (None, False))
 
     def test_characters_with_several_roles_are_warned_about(self):
-        warning = '<p class="penalty">Kesten has several roles: General, Commander of Ravagers.</p>'
+        warning = "Kesten has several roles: General, Commander of Ravagers."
         kesten = Character.objects.create(kingdom=self.kingdom, name="Kesten", kind="npc")
         self.kingdom.leaders.filter(role="general").update(character=kesten)
         self.assertNotContains(self.client.get(self.url), "several roles")
         Army.objects.create(kingdom=self.kingdom, name="Ravagers", commander=kesten)
-        self.assertContains(self.client.get(self.url), warning, html=True)
+        self.assertContains(self.client.get(self.url), warning)
         self.client.post(reverse("kingdoms:edit_start", args=[self.kingdom.pk]))
-        self.assertContains(self.client.get(self.edit_url), warning, html=True)
+        self.assertContains(self.client.get(self.edit_url), warning)
 
     def test_invalid_rank_is_rejected(self):
         response = self.client.post(self.edit_url, sheet_post_data(self.kingdom, trade_rank=9))
