@@ -226,6 +226,11 @@ class KingdomSheetTests(TestCase):
             page, "Key ability: Stability. Vacancy penalty: disadvantage on Region activities"
         )
 
+    def test_pages_have_dark_mode_toggle(self):
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="dark-mode-toggle"')
+        self.assertContains(page, "kingdoms/dark-mode.js")
+
     def test_edit_mode_explains_each_role(self):
         page = self.client.get(reverse("kingdoms:edit", args=[self.kingdom.pk]))
         self.assertContains(page, "Key ability: Loyalty. Vacancy penalty: -1 to all checks")

@@ -5,6 +5,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Kingdom Sheet{% endblock %}</title>
+  <script>
+    // Applies the saved dark mode choice before the page paints, so light mode does not flash.
+    (function () {
+      var stored = localStorage.getItem("kingdomsheet-dark-mode");
+      var dark = stored !== null ? stored === "true" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (dark) document.documentElement.classList.add("dark-mode");
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'kingdoms/site.css' %}">
   {% if goatcounter_url %}
   <script>
@@ -19,7 +27,7 @@
   {% endif %}
 </head>
 <body>
-  <nav class="top-bar"><div class="top-bar-inner"><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a>{% if is_admin %} &middot; <a href="{% url 'kingdoms:admin_kingdoms' %}">Admin</a>{% endif %}</div></nav>
+  <nav class="top-bar"><div class="top-bar-inner"><button type="button" id="dark-mode-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"><span id="dark-mode-icon">&#127769;</span></button><a href="{% url 'kingdoms:home' %}">Your kingdoms</a> &middot; <a href="{% url 'kingdoms:names' %}">{{ current_name|default:"Your name" }}</a>{% if is_admin %} &middot; <a href="{% url 'kingdoms:admin_kingdoms' %}">Admin</a>{% endif %}</div></nav>
   <div class="page">
   <div class="title-bar">
     <h1>{% block heading %}Kingdom Sheet{% endblock %}</h1>
@@ -35,5 +43,6 @@
   {% block footer %}{% endblock %}
   <p class="hint">Your name and kingdom list are remembered with a session cookie in this browser.{% if goatcounter_url %} Anonymous page views are counted with a self-hosted GoatCounter, which uses no cookies.{% endif %}</p>
   </div>
+  <script src="{% static 'kingdoms/dark-mode.js' %}"></script>
 </body>
 </html>

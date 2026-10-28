@@ -1,4 +1,43 @@
 /* Layout and look follow kvarak/fh-items. */
+:root {
+  --color-page: #fff;
+  --color-text: #000;
+  --color-muted: #666;
+  --color-border: #ddd;
+  --color-border-strong: #ccc;
+  --color-surface: #fff;
+  --color-surface-muted: #f4f4f4;
+  --color-placeholder: #eee;
+  --color-danger: #c00;
+  --color-warning: #8a6100;
+  --color-consequence: #e07b00;
+  --color-reminder: #2e7d32;
+  --color-accent-text: #2a5a9c;
+}
+
+/* Dark mode is set by dark-mode.js, which adds the class to <html>. */
+html.dark-mode {
+  color-scheme: dark;
+  --color-page: #121212;
+  --color-text: #e6e6e6;
+  --color-muted: #a0a0a0;
+  --color-border: #444;
+  --color-border-strong: #555;
+  --color-surface: #1e1e1e;
+  --color-surface-muted: #2a2a2a;
+  --color-placeholder: #333;
+  --color-danger: #ff6b6b;
+  --color-warning: #e0b050;
+  --color-consequence: #ffa040;
+  --color-reminder: #7ccf80;
+  --color-accent-text: #7fb0e8;
+}
+
+html {
+  background: var(--color-page);
+  color: var(--color-text);
+}
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
@@ -24,6 +63,22 @@ body {
 
 .top-bar a {
   color: #fff;
+}
+
+#dark-mode-toggle {
+  float: right;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.4;
+  margin-left: 0.5rem;
+  padding: 0 0.4rem;
+}
+
+#dark-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 fieldset {
@@ -119,16 +174,16 @@ textarea {
 
 .hint {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-muted);
   margin: 0.25rem 0;
 }
 
 .errorlist, .error {
-  color: #c00;
+  color: var(--color-danger);
 }
 
 .warning {
-  color: #8a6100;
+  color: var(--color-warning);
 }
 
 code {
@@ -143,7 +198,7 @@ table {
 th, td {
   text-align: left;
   padding: 0.3rem 0.35rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-border);
   vertical-align: top;
 }
 
@@ -180,8 +235,8 @@ td, th {
 }
 
 [aria-invalid="true"] {
-  border-color: #c00;
-  outline: 1px solid #c00;
+  border-color: var(--color-danger);
+  outline: 1px solid var(--color-danger);
 }
 
 .title-bar {
@@ -211,7 +266,7 @@ td, th {
 }
 
 .lock-low, .lock-expired {
-  color: #c00;
+  color: var(--color-danger);
 }
 
 .messages {
@@ -407,7 +462,7 @@ td, th {
   gap: 0.5rem;
   max-height: 18rem;
   overflow-y: auto;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   padding: 0.5rem;
   border-radius: 0.25rem;
 }
@@ -518,7 +573,7 @@ td, th {
   gap: 0.4rem;
   margin-top: 0.25rem;
   padding: 0.5rem;
-  background: #f4f4f4;
+  background: var(--color-surface-muted);
   border-radius: 0.25rem;
 }
 
@@ -547,8 +602,8 @@ td, th {
   width: min(24rem, 90vw);
   box-sizing: border-box;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  background: #fff;
-  border: 1px solid #ccc;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
 }
 
 .character-notes-view {
@@ -602,7 +657,7 @@ td, th {
   height: 3rem;
   object-fit: cover;
   border-radius: 0.25rem;
-  background: #eee;
+  background: var(--color-placeholder);
 }
 
 .character-no-picture {
@@ -628,16 +683,16 @@ td, th {
 }
 
 .growth {
-  color: #2a5a9c;
+  color: var(--color-accent-text);
 }
 
 .info {
-  color: #2a5a9c;
+  color: var(--color-accent-text);
   cursor: help;
 }
 
 .penalty {
-  color: #c00;
+  color: var(--color-danger);
 }
 
 .notes-warnings, .notes-consequences, .notes-reminders {
@@ -647,15 +702,15 @@ td, th {
 }
 
 .notes-warnings {
-  color: #c00;
+  color: var(--color-danger);
 }
 
 .notes-consequences {
-  color: #e07b00;
+  color: var(--color-consequence);
 }
 
 .notes-reminders {
-  color: #2e7d32;
+  color: var(--color-reminder);
 }
 
 .character-reminder {
@@ -674,7 +729,7 @@ td, th {
 }
 
 .battle {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.5rem;
   margin-bottom: 0.5rem;
 }
